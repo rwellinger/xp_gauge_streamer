@@ -1,6 +1,9 @@
 SHELL := /bin/bash
 
 XPLANE_ROOT := /Users/robertw/X-Plane 12
+# Settings live in Output/ rather than the plugin folder so a plugin update,
+# which replaces that folder wholesale, leaves them alone.
+SETTINGS_DIR := $(XPLANE_ROOT)/Output/xp_gauge_streamer
 # X-Plane's folder name for 64-bit macOS plugins is mac_x64 even for an
 # arm64-only binary — the name predates Apple Silicon and is not architecture.
 PLUGIN_DIR  := $(XPLANE_ROOT)/Resources/available plugins/xp_gauge_streamer
@@ -29,7 +32,7 @@ help:
 	@echo "  setup           Download X-Plane SDK, civetweb, Catch2; install libjpeg-turbo"
 	@echo "  build           Configure + compile → build/xp_gauge_streamer.xpl"
 	@echo "  test            Build and run the Catch2 unit tests"
-	@echo "  install         Code-sign and copy the plugin + web/ into X-Plane (mac_x64)"
+	@echo "  install         Code-sign and copy plugin, web/ and default settings into X-Plane"
 	@echo "  sanitize        Build + run the unit tests under ASan + UBSan"
 	@echo "  clean           Remove build/, build-lint/ and build-sanitize/"
 	@echo "  distclean       clean + remove sdk/ and vendor/ (everything 'make setup' installed)"
@@ -132,6 +135,13 @@ install:
 	@rm -rf "$(PLUGIN_DIR)/web"
 	@cp -R web "$(PLUGIN_DIR)/web"
 	@echo "Installed: $(PLUGIN_DIR)/web (HTTP document root)"
+	@if [ -f "$(SETTINGS_DIR)/settings.cfg" ]; then \
+	    echo "Kept:      $(SETTINGS_DIR)/settings.cfg (already present)"; \
+	else \
+	    mkdir -p "$(SETTINGS_DIR)"; \
+	    cp config/settings.cfg "$(SETTINGS_DIR)/"; \
+	    echo "Installed: $(SETTINGS_DIR)/settings.cfg"; \
+	fi
 	@echo ""
 	@echo "Plugin installed. Restart X-Plane to load it."
 

@@ -34,9 +34,10 @@ bind_address = 127.0.0.1
 port = 8080
 ```
 
-The file is written with the defaults on first start. Settings live under
-`Output/` so a plugin update leaves them alone; changes take effect on the next
-X-Plane start.
+`make install` puts the default file there and never overwrites an existing
+one; the plugin also writes it on first start if it is missing. Settings live
+under `Output/` so a plugin update leaves them alone. Changes take effect on
+the next X-Plane start.
 
 ## Build
 
@@ -70,6 +71,7 @@ X-Plane process for in-sim memory analysis.
 
 ```
 src/       plugin sources (X-Plane SDK)
+config/    default settings.cfg — installed into <X-Plane>/Output/
 web/       HTTP document root — shipped next to the .xpl, served by the plugin
 tests/     Catch2 unit tests — never link the SDK, domain logic only
 sdk/       X-Plane SDK headers + stub frameworks   (make setup)
