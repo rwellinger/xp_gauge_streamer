@@ -21,7 +21,7 @@ IMGUI_VERSION    := 1.92.8
 
 DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) $(IMGUI_SENTINEL) jpeg-turbo
 
-.PHONY: help all setup jpeg-turbo build test install format lint sanitize release release-build cleanup-tags cleanup-runs clean distclean
+.PHONY: help all setup jpeg-turbo build test install format lint sanitize release release-build cleanup-tags cleanup-branches cleanup-runs clean distclean
 
 .DEFAULT_GOAL := help
 
@@ -49,6 +49,7 @@ help:
 	@echo "  release VERSION=x.y.z   Tag + push release (commits VERSION.txt)"
 	@echo "  release-build           Local release build (-DRELEASE=ON)"
 	@echo "  cleanup-tags            Prune local tags removed on origin"
+	@echo "  cleanup-branches        Prune local branches whose remote is gone"
 	@echo "  cleanup-runs            Delete all GitHub Actions runs except the newest per workflow"
 
 all: format build lint test
@@ -238,6 +239,22 @@ release-build: $(DEPS)
 cleanup-tags:
 	git fetch --prune --prune-tags origin
 	@echo "Local tags synced with remote."
+
+# ── Cleanup Branches ──────────────────────────────────────────────────────────
+cleanup-branches:
+	@echo "Pruning remote-tracking references..."
+	@git fetch --prune origin
+	@echo ""
+	@echo "Local branches whose upstream is gone:"
+	@STALE=$$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$$2 == "[gone]" {print $$1}'); \
+	if [ -z "$$STALE" ]; then \
+	    echo "  (none)"; \
+	else \
+	    echo "$$STALE" | sed 's/^/  /'; \
+	    echo ""; \
+	    echo "$$STALE" | xargs -n1 git branch -d; \
+	fi
+	@echo "Local branches synced with remote."
 
 # ── Cleanup GitHub Actions runs ───────────────────────────────────────────────
 cleanup-runs:
