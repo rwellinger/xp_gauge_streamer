@@ -1,6 +1,4 @@
-# xp_gauge_streamer
-
-Shown in X-Plane as **Welly's Gauge Streamer**.
+# Welly's Gauge Streamer
 
 ![Build](https://github.com/rwellinger/xp_gauge_streamer/actions/workflows/build.yml/badge.svg)
 
