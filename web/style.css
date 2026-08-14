@@ -175,10 +175,13 @@ h1 {
 }
 
 button {
+    /* The browser's own padding shifts the label off centre on the small keys —
+       the press in the middle of a volume knob is barely wider than its text. */
+    padding: 0;
     border: 1px solid var(--edge);
     background: var(--key);
     color: var(--text);
-    font: 600 calc(var(--unit) * 20) / 1 system-ui, sans-serif;
+    font: 600 calc(var(--unit) * 18) / 1 system-ui, sans-serif;
     cursor: pointer;
     touch-action: manipulation;
 }
@@ -228,40 +231,28 @@ button[data-pressed="true"] {
     margin: 0 auto;
 }
 
-.ring {
-    position: absolute;
-}
-
-/* Each half is a full circle clipped down the middle, so the rings really do
-   sit inside one another instead of looking like four keys in a square. */
+/* A sector of the round face, clipped to its wedge by the renderer. The rim
+   stays circular because the background is rounded, the wedge only decides
+   which part of it belongs to this key. */
 .half {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    font-size: calc(var(--unit) * 26);
+    font-size: calc(var(--unit) * 24);
 }
 
-.half.decrease {
-    clip-path: inset(0 50% 0 0);
-    justify-content: flex-start;
-    padding-left: 4%;
+.glyph {
+    position: absolute;
+    transform: translate(-50%, -50%);
 }
 
-.half.increase {
-    clip-path: inset(0 0 0 50%);
-    justify-content: flex-end;
-    padding-right: 4%;
-}
-
-/* Each ring inwards sits a shade lighter, so a dual knob reads as two rings
-   around a centre rather than as one flat disc. */
-.ring[data-depth="1"] .half {
+/* Each ring a shade lighter than the one before, so the cross of sectors reads
+   as two controls on one knob rather than as four keys. */
+.half[data-depth="1"] {
     background: #2f373f;
 }
 
-.ring[data-depth="2"] .half {
+.half[data-depth="2"] {
     background: #3a444d;
 }
 
@@ -269,12 +260,16 @@ button[data-pressed="true"] {
     position: absolute;
     border-radius: 50%;
     background: #3f4a54;
-    font-size: calc(var(--unit) * 16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-size: calc(var(--unit) * 14);
 }
 
 .caption {
     text-align: center;
-    font-size: calc(var(--unit) * 15);
+    font-size: calc(var(--unit) * 13);
     color: #5c646c;
     letter-spacing: 0.05em;
 }

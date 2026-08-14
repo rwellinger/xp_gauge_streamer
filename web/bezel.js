@@ -93,9 +93,47 @@ function renderRocker(control, press) {
     return node;
 }
 
-// Rings are drawn outermost first, each one covering the middle of the one
-// before it — that is what makes a dual concentric knob read as one control
-// rather than as four keys.
+// Angles run counter-clockwise from "east", the way a unit circle does; the
+// screen's y axis points the other way, hence the minus on every sine.
+const CENTRE_INSET = 30;
+const GLYPH_RADIUS = 34;
+const SECTOR_GAP_DEGREES = 1.5;
+
+// Reaches past the circle into the square's corners: a press that lands just
+// outside the drawn rim still belongs to the sector under the finger.
+const SECTOR_RADIUS = 75;
+
+function sectorClipPath(centreAngle, halfWidth) {
+    const points = ['50% 50%'];
+
+    for (let step = 0; step <= 8; step += 1) {
+        const radians = ((centreAngle - halfWidth + (2 * halfWidth * step) / 8) * Math.PI) / 180;
+        points.push(`${50 + SECTOR_RADIUS * Math.cos(radians)}% ${50 - SECTOR_RADIUS * Math.sin(radians)}%`);
+    }
+
+    return `polygon(${points.join(', ')})`;
+}
+
+function sector(command, glyph, centreAngle, halfWidth, depth, press) {
+    const node = key('half', '', command, press);
+    node.dataset.depth = String(depth);
+    node.style.clipPath = sectorClipPath(centreAngle, halfWidth - SECTOR_GAP_DEGREES);
+
+    const radians = (centreAngle * Math.PI) / 180;
+    const label = document.createElement('span');
+    label.className = 'glyph';
+    label.textContent = glyph;
+    label.style.left = `${50 + GLYPH_RADIUS * Math.cos(radians)}%`;
+    label.style.top = `${50 - GLYPH_RADIUS * Math.sin(radians)}%`;
+
+    node.append(label);
+    return node;
+}
+
+// Rings split the face by angle, not by radius: every ring keeps the full
+// radius, so a sector stays wide enough for a finger however many rings a
+// device stacks. Two rings give the familiar cross — outer left/right, inner
+// up/down — around the press in the centre.
 function renderKnob(control, press) {
     const node = document.createElement('div');
     node.className = 'knob';
@@ -103,24 +141,19 @@ function renderKnob(control, press) {
     const face = document.createElement('div');
     face.className = 'face';
 
-    // Rings share whatever the centre leaves them, so every band stays wide
-    // enough for a finger however many rings a device stacks.
-    const coreInset = control.press ? 30 : 50;
-    const bandWidth = coreInset / control.rings.length;
+    const sectorHalfWidth = 90 / control.rings.length;
 
     control.rings.forEach((ring, depth) => {
-        const halves = document.createElement('div');
-        halves.className = 'ring';
-        halves.dataset.depth = String(depth);
-        halves.style.inset = `${depth * bandWidth}%`;
-        halves.append(key('half decrease', '−', ring.decrease, press),
-                      key('half increase', '+', ring.increase, press));
-        face.append(halves);
+        // Every ring inwards turns the pair a sector further round, so the
+        // second one ends up increasing upwards and decreasing downwards.
+        const axis = depth * 2 * sectorHalfWidth;
+        face.append(sector(ring.increase, '+', axis, sectorHalfWidth, depth, press),
+                    sector(ring.decrease, '−', axis + 180, sectorHalfWidth, depth, press));
     });
 
     if (control.press) {
         const centre = key('press', control.press.label, control.press.command, press);
-        centre.style.inset = `${coreInset}%`;
+        centre.style.inset = `${CENTRE_INSET}%`;
         face.append(centre);
     }
 
