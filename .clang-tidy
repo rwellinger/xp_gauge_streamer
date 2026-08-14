@@ -1,0 +1,19 @@
+Checks: >-
+  clang-diagnostic-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-throwing-static-initialization,
+  performance-*,
+  -performance-avoid-endl,
+  -performance-no-int-to-ptr
+
+# Belt-and-suspenders: only report diagnostics from our headers.
+# External deps are already SYSTEM includes in CMake (skipped by default).
+HeaderFilterRegex: 'src/.*\.(h|hpp)$'
+
+# Treat matched checks as errors in CI
+WarningsAsErrors: 'bugprone-*,-bugprone-throwing-static-initialization'
+
+CheckOptions:
+  - key: bugprone-suspicious-string-compare.WarnOnLogicalNotComparison
+    value: 'true'

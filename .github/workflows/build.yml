@@ -1,0 +1,87 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # Runs on macOS rather than Linux (unlike xp_pilot): this plugin links the
+  # macOS XPLM stub frameworks, so CMake refuses to configure elsewhere.
+  lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install tools
+        run: brew install llvm
+
+      - name: Setup dependencies
+        run: make setup
+
+      - name: Configure (generate compile_commands.json)
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -Wno-dev
+
+      - name: Run clang-tidy
+        run: |
+          "$(brew --prefix llvm)/bin/clang-tidy" -p build \
+            --extra-arg="-isysroot" --extra-arg="$(xcrun --show-sdk-path)" \
+            src/*.cpp
+
+  build-macos:
+    needs: [lint]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup dependencies
+        run: make setup
+
+      - name: Build
+        run: |
+          RELEASE_FLAG=""
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then RELEASE_FLAG="-DRELEASE=ON"; fi
+          cmake -B build -DCMAKE_BUILD_TYPE=Release $RELEASE_FLAG -Wno-dev
+          cmake --build build --parallel
+
+      - name: Run tests
+        run: ./build/xp_gauge_streamer_tests
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: xp_gauge_streamer-macos
+          path: build/xp_gauge_streamer.xpl
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [lint, build-macos]
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: xp_gauge_streamer-macos
+          path: dist/macos
+
+      - name: Build ZIP
+        run: |
+          mkdir -p dist/xp_gauge_streamer/mac_x64
+          cp dist/macos/xp_gauge_streamer.xpl dist/xp_gauge_streamer/mac_x64/xp_gauge_streamer.xpl
+          cd dist && zip -r xp_gauge_streamer.zip xp_gauge_streamer/
+
+      - name: Create release with assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/xp_gauge_streamer.zip
+          generate_release_notes: true
