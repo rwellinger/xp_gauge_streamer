@@ -29,11 +29,14 @@ other two as absent. Each unit has its own page at `/device/<slug>`, with the
 slugs `gns430_1`, `gns430_2`, `gns530_1` and `gns530_2`, so a tablet can
 bookmark just its own screen.
 
-The device page draws the bezel around the stream: COM/NAV volume and
-flip-flop, CDI, OBS, MSG, FPL, VNAV (530 only), PROC, RNG, D→, MENU, CLR, ENT
-and the two dual concentric knobs. The bezel is drawn, not captured — X-Plane
-hands out the GNS screen only, never its frame. Presses travel over the
-WebSocket and reach the sim as the unit's own commands.
+The device page draws the bezel around the stream, laid out like the unit in the
+cockpit: COM and VLOC volume with their push functions on the left, the C and V
+frequency flip-flops beside them, CDI, OBS, MSG, FPL, VNAV (530 only) and PROC in
+a row under the screen, RNG, D→, MENU, CLR and ENT down the right, and the two
+large dual knobs in the bottom corners — COM/VLOC frequency on the left, chapter
+and page with CRSR on the right. The bezel is drawn, not captured — X-Plane hands
+out the GNS screen only, never its frame. Presses travel over the WebSocket and
+reach the sim as the unit's own commands.
 
 The connection state is always visible, and the page reconnects on its own
 after an X-Plane restart or a WLAN dropout — a dead frontend that looks alive
@@ -69,7 +72,10 @@ A device's bezel comes from data, never from code. `web/bezels/<type>.json`
 gives the screen area, every key with its label and command suffix, and the
 geometry in the bezel's own units — the frontend scales that to the viewport
 and draws it. The renderer knows three control kinds: `button`, `rocker` and
-`knob` (concentric rings with an optional press in the centre).
+`knob`. A knob's rings split the face by angle rather than by radius, so a dual
+knob becomes four quarter sectors around an optional press in the centre — outer
+ring left and right, inner ring up and down, every target wide enough for a
+finger in turbulence.
 
 So a G1000 or an MCP takes three steps and no renderer change:
 
@@ -101,10 +107,10 @@ update leaves them alone. Changes take effect on the next X-Plane start.
 ## Build
 
 ```bash
-make setup    # X-Plane SDK, civetweb, Catch2 → sdk/ + vendor/; libjpeg-turbo via Homebrew
+make setup    # SDK, civetweb, Catch2, json, ImGui → sdk/ + vendor/; libjpeg-turbo via Homebrew
 make build    # Configure + compile → build/xp_gauge_streamer.xpl
 make test     # Run the Catch2 unit tests
-make install  # Code-sign and copy the plugin into X-Plane
+make install  # Code-sign and copy plugin, web/ and default settings into X-Plane
 ```
 
 `make help` lists every target. Neither `sdk/` nor `vendor/` is committed — both
@@ -156,7 +162,7 @@ libjpeg-turbo is linked statically so the `.xpl` stays self-contained.
 ## Release
 
 ```bash
-make release VERSION=0.2.0   # commits VERSION.txt, tags, pushes
+make release VERSION=0.3.0   # commits VERSION.txt, tags, pushes
 ```
 
 Pushing a `v*` tag runs lint + build on CI and publishes a ZIP to the releases page.
