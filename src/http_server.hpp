@@ -23,4 +23,7 @@ void stop_server();
 // How many MJPEG streams are being served right now. Safe from any thread.
 int active_stream_count();
 
+// False when the server never came up — a taken port is the usual reason.
+bool server_is_running();
+
 } // namespace xp_gauge_streamer

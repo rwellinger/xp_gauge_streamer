@@ -283,4 +283,6 @@ void stop_server()
 
 int active_stream_count() { return open_streams.load(); }
 
+bool server_is_running() { return server != nullptr; }
+
 } // namespace xp_gauge_streamer

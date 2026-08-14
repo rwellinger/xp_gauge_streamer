@@ -24,4 +24,13 @@ Settings load_settings(const std::string &path);
 
 bool save_settings(const std::string &path, const Settings &settings);
 
+// Points the module at its file and reads it, writing the defaults back when
+// the file does not exist yet — that is what makes it discoverable.
+void open_settings(const std::string &path);
+
+// The settings in use. The UI edits them in place, then persists.
+Settings &current_settings();
+
+bool persist_settings();
+
 } // namespace xp_gauge_streamer

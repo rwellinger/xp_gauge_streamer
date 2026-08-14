@@ -67,6 +67,7 @@ struct CaptureTarget
 
 FrameSink       frame_sink = nullptr;
 CaptureSchedule schedule(CAPTURE_FRAMES_PER_SECOND);
+bool            readback_enabled = false;
 
 // Held by pointer because each target's address is handed to X-Plane as the
 // callback refcon — a reallocating vector of values would dangle.
@@ -193,7 +194,7 @@ int draw_after(XPLMDeviceID device_id, int is_before, void *refcon)
 {
     auto *target = static_cast<CaptureTarget *>(refcon);
 
-    if (frame_sink != nullptr && schedule.is_due(target->device_id, XPLMGetElapsedTime()))
+    if (frame_sink != nullptr && readback_enabled && schedule.is_due(target->device_id, XPLMGetElapsedTime()))
         capture_frame(*target);
 
     return 1;
@@ -258,6 +259,28 @@ void refresh_capture_registrations()
     }
 }
 
+void set_readback_enabled(bool enabled)
+{
+    if (enabled == readback_enabled)
+        return;
+
+    readback_enabled = enabled;
+
+    // Forget the timestamps so a re-enabled device captures at once instead of
+    // waiting out an interval that elapsed while nobody was watching.
+    if (enabled)
+    {
+        for (const std::unique_ptr<CaptureTarget> &target : targets)
+            schedule.forget(target->device_id);
+    }
+}
+
+bool device_is_in_aircraft(DeviceId device_id)
+{
+    const CaptureTarget *target = find_target(device_id);
+    return target != nullptr && XPLMIsAvionicsBound(target->handle) != 0;
+}
+
 void stop_capture()
 {
     for (const std::unique_ptr<CaptureTarget> &target : targets)
@@ -266,7 +289,8 @@ void stop_capture()
         schedule.forget(target->device_id);
     }
     targets.clear();
-    frame_sink = nullptr;
+    frame_sink       = nullptr;
+    readback_enabled = false;
 }
 
 } // namespace xp_gauge_streamer

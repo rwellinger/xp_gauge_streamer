@@ -1,22 +1,25 @@
 # xp_gauge_streamer
 
+Shown in X-Plane as **Welly's Gauge Streamer**.
+
 ![Build](https://github.com/rwellinger/xp_gauge_streamer/actions/workflows/build.yml/badge.svg)
 
 Native X-Plane 12 plugin for **macOS (Apple Silicon)** that captures the default
 Laminar GNS430/530 display and streams it to a web frontend, where it can be
 operated by click or touch instead of via the cockpit popout.
 
-Status: the GNS screen streams to the browser — see
-[issue #1](../../issues/1) for the remaining feature work.
+Status: feature complete — the GNS screen streams to the browser and its keys
+operate the unit in the sim.
 
 **Requirements:** macOS 12.0+ (arm64) · X-Plane 12 · CMake 3.21+ · Homebrew
 
 ## Watching the stream
 
-With the plugin loaded, open `http://localhost:8080/` on this machine, or
-`http://<mac-ip>:8080/` from a tablet in the same network. A single device
-stream is at `/stream/<slug>`, with the slugs `gns430_1`, `gns430_2`,
-`gns530_1` and `gns530_2`.
+**Plugins → Welly's Gauge Streamer → Stream settings** shows the address to type on
+the tablet, which devices this aircraft has, and the port. Or open
+`http://localhost:8080/` on this machine and `http://<mac-ip>:8080/` from a
+tablet in the same network. A single unit's stream is at `/stream/<slug>`,
+with the slugs `gns430_1`, `gns430_2`, `gns530_1` and `gns530_2`.
 
 The page asks the plugin which units the loaded aircraft actually has and
 offers only those — a panel with a GNS530 and a second GNS430 reports
@@ -37,12 +40,12 @@ X-Plane nothing.
 
 ### Endpoints
 
-| Endpoint          | Purpose                                                     |
-|-------------------|-------------------------------------------------------------|
-| `/`               | Start page, lists the units this aircraft has                |
-| `/stream/<slug>`  | MJPEG stream of one unit                                     |
-| `/devices`        | JSON: slug, name and whether the unit produces frames        |
-| `/control`        | WebSocket: `{"device": "gns530_1", "button": "fpl"}`         |
+| Endpoint         | Purpose                                               |
+|------------------|-------------------------------------------------------|
+| `/`              | Start page, lists the units this aircraft has          |
+| `/stream/<slug>` | MJPEG stream of one unit                               |
+| `/devices`       | JSON: slug, name and whether the unit produces frames  |
+| `/control`       | WebSocket: `{"device": "gns530_1", "button": "fpl"}`   |
 
 Button names follow X-Plane's `sim/GPS/g430n*_` commands — `fpl`, `menu`,
 `clr`, `ent`, `cursor`, `zoom_in`, `page_up`, … Only whitelisted names are
@@ -53,8 +56,7 @@ on X-Plane's main thread, never from the network thread.
 
 **The server has no authentication.** It binds to `0.0.0.0` on purpose — a
 tablet as a second screen is the point of this plugin — so anyone on the same
-network can watch the GNS, and from phase 6 on also operate it. Use it on a
-network you trust, or restrict the server to this machine:
+network can watch the GNS and operate it. Use it on a network you trust, or restrict the server to this machine:
 
 ```
 # <X-Plane>/Output/xp_gauge_streamer/settings.cfg
@@ -63,9 +65,9 @@ port = 8080
 ```
 
 `make install` puts the default file there and never overwrites an existing
-one; the plugin also writes it on first start if it is missing. Settings live
-under `Output/` so a plugin update leaves them alone. Changes take effect on
-the next X-Plane start.
+one; the plugin also writes it on first start if it is missing. The port can
+also be set in the plugin window. Settings live under `Output/` so a plugin
+update leaves them alone. Changes take effect on the next X-Plane start.
 
 ## Build
 
@@ -103,7 +105,7 @@ config/    default settings.cfg — installed into <X-Plane>/Output/
 web/       frontend (index.html, app.js, style.css) — no framework, no build step
 tests/     Catch2 unit tests — never link the SDK, domain logic only
 sdk/       X-Plane SDK headers + stub frameworks   (make setup)
-vendor/    civetweb, nlohmann/json, Catch2         (make setup)
+vendor/    civetweb, nlohmann/json, Dear ImGui, Catch2  (make setup)
 ```
 
 ## Dependencies
@@ -114,6 +116,7 @@ vendor/    civetweb, nlohmann/json, Catch2         (make setup)
 | civetweb      | 1.16    | `make setup`        | Embedded HTTP server + WebSocket   |
 | libjpeg-turbo | latest  | Homebrew            | JPEG encoding (arm64/NEON)         |
 | nlohmann/json | 3.12.0  | `make setup`        | Parsing control messages           |
+| Dear ImGui    | 1.92.8  | `make setup`        | In-sim settings window             |
 | Catch2        | 3.15.3  | `make setup`        | Unit tests                         |
 
 civetweb is used over mongoose because its MIT license matches this project's.

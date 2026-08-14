@@ -9,6 +9,9 @@ namespace xp_gauge_streamer
 namespace
 {
 
+Settings    settings_in_use;
+std::string settings_file;
+
 constexpr int LOWEST_PORT  = 1;
 constexpr int HIGHEST_PORT = 65535;
 
@@ -97,6 +100,17 @@ Settings load_settings(const std::string &path)
     text << file.rdbuf();
     return parse_settings(text.str());
 }
+
+void open_settings(const std::string &path)
+{
+    settings_file   = path;
+    settings_in_use = load_settings(path);
+    persist_settings();
+}
+
+Settings &current_settings() { return settings_in_use; }
+
+bool persist_settings() { return !settings_file.empty() && save_settings(settings_file, settings_in_use); }
 
 bool save_settings(const std::string &path, const Settings &settings)
 {
