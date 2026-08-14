@@ -78,6 +78,7 @@ jobs:
         run: |
           mkdir -p dist/xp_gauge_streamer/mac_x64
           cp dist/macos/xp_gauge_streamer.xpl dist/xp_gauge_streamer/mac_x64/xp_gauge_streamer.xpl
+          cp -R web dist/xp_gauge_streamer/web
           cd dist && zip -r xp_gauge_streamer.zip xp_gauge_streamer/
 
       - name: Create release with assets

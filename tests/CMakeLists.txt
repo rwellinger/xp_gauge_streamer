@@ -13,11 +13,13 @@ add_executable(xp_gauge_streamer_tests
     ${CMAKE_SOURCE_DIR}/src/device_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/frame_buffer.cpp
     ${CMAKE_SOURCE_DIR}/src/jpeg_encoder.cpp
+    ${CMAKE_SOURCE_DIR}/src/settings.cpp
     test_smoke.cpp
     test_capture_schedule.cpp
     test_device_registry.cpp
     test_frame_buffer.cpp
     test_jpeg_encoder.cpp
+    test_settings.cpp
 )
 
 target_include_directories(xp_gauge_streamer_tests PRIVATE
