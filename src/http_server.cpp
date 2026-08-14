@@ -1,5 +1,6 @@
 #include "http_server.hpp"
 
+#include "avionics_capture.hpp"
 #include "command_dispatch.hpp"
 #include "device_registry.hpp"
 #include "frame_pipeline.hpp"
@@ -23,6 +24,7 @@ namespace
 {
 
 constexpr char STREAM_URI_PREFIX[]  = "/stream/";
+constexpr char DEVICE_URI_PREFIX[]  = "/device/";
 constexpr char DEVICES_URI[]        = "/devices";
 constexpr char CONTROL_URI[]        = "/control";
 constexpr char MULTIPART_BOUNDARY[] = "xpgsframe";
@@ -36,11 +38,11 @@ constexpr char WORKER_THREADS[] = "12";
 // nothing while the GNS screen is static.
 constexpr auto FRAME_POLL_INTERVAL = std::chrono::milliseconds(10);
 
-// Long enough for the flight loop to start capturing and the first frames to
-// arrive at 6 fps, short enough that the start page does not feel stuck.
-constexpr auto DEVICE_PROBE_TIMEOUT = std::chrono::milliseconds(2500);
-
 mg_context *server = nullptr;
+
+// Kept because /device/<slug> answers from a file rather than civetweb's static
+// handler, which never sees that path.
+std::string document_root;
 
 // Cleared before mg_stop() so open streams leave their loop instead of holding
 // the shutdown until their client disconnects.
@@ -66,13 +68,14 @@ class ViewerRegistration
     std::string name;
 };
 
-std::string_view slug_from_uri(const char *uri)
+// Both /stream/<slug> and /device/<slug> carry the slug the same way.
+std::string_view segment_after_prefix(const char *uri, size_t prefix_length)
 {
     const std::string_view path(uri != nullptr ? uri : "");
-    if (path.size() <= sizeof(STREAM_URI_PREFIX) - 1)
+    if (path.size() <= prefix_length)
         return {};
 
-    return path.substr(sizeof(STREAM_URI_PREFIX) - 1);
+    return path.substr(prefix_length);
 }
 
 void send_stream_headers(mg_connection *connection)
@@ -129,7 +132,8 @@ void stream_frames(mg_connection *connection, DeviceId device_id)
 int handle_stream(mg_connection *connection, void *)
 {
     const mg_request_info  *request = mg_get_request_info(connection);
-    const DeviceDescriptor *device  = find_device_by_slug(slug_from_uri(request->local_uri));
+    const DeviceDescriptor *device =
+        find_device_by_slug(segment_after_prefix(request->local_uri, sizeof(STREAM_URI_PREFIX) - 1));
 
     if (device == nullptr || !device->enabled)
     {
@@ -144,50 +148,42 @@ int handle_stream(mg_connection *connection, void *)
     return 200;
 }
 
-bool every_enabled_device_has_frames()
-{
-    for (const DeviceDescriptor &device : all_devices())
-    {
-        if (device.enabled && !has_frames(device.device_id))
-            return false;
-    }
-    return true;
-}
-
-// Capturing only runs while somebody watches, so a bare query would find every
-// device silent. Registering as a viewer starts capture for the length of the
-// probe; the main thread picks that up within its one-second check.
-void wait_for_frames()
-{
-    const auto deadline = std::chrono::steady_clock::now() + DEVICE_PROBE_TIMEOUT;
-
-    while (std::chrono::steady_clock::now() < deadline)
-    {
-        if (every_enabled_device_has_frames())
-            return;
-
-        std::this_thread::sleep_for(FRAME_POLL_INTERVAL);
-    }
-}
-
-// Which GNS units exist depends on the aircraft's panel, and only the sim can
-// answer that — a device the panel lacks never produces a frame.
+// Which units exist depends on the aircraft's panel, and only the sim can answer
+// that. The answer comes from the main thread's presence check, so listing the
+// devices costs neither capture time nor a wait for the first frame.
 int handle_devices(mg_connection *connection, void *)
 {
-    const ViewerRegistration probe("device probe");
-    wait_for_frames();
-
     nlohmann::json devices = nlohmann::json::array();
     for (const DeviceDescriptor &device : all_devices())
     {
         devices.push_back({{"slug", device.slug},
+                           {"type", device.type},
                            {"name", device.display_name},
-                           {"streaming", device.enabled && has_frames(device.device_id)}});
+                           {"present", device.enabled && device_is_in_aircraft(device.device_id)}});
     }
 
     const std::string body = nlohmann::json{{"devices", devices}}.dump();
     mg_send_http_ok(connection, "application/json", static_cast<long long>(body.size()));
     mg_write(connection, body.data(), body.size());
+    return 200;
+}
+
+// /device/<slug> carries the choice in the URL so a tablet can bookmark one
+// unit. The page behind every slug is the same file — which bezel it draws is
+// the frontend's business, decided from the device's type.
+int handle_device_page(mg_connection *connection, void *)
+{
+    const mg_request_info *request = mg_get_request_info(connection);
+    const std::string_view slug    = segment_after_prefix(request->local_uri, sizeof(DEVICE_URI_PREFIX) - 1);
+
+    if (find_device_by_slug(slug) == nullptr)
+    {
+        mg_send_http_error(connection, 404, "%s", "No such device");
+        return 404;
+    }
+
+    const std::string page = document_root + "/device.html";
+    mg_send_file(connection, page.c_str());
     return 200;
 }
 
@@ -244,6 +240,7 @@ bool start_server(const ServerConfig &config)
         return true;
 
     const std::string listening_ports = config.bind_address + ":" + std::to_string(config.port);
+    document_root                     = config.document_root;
 
     const char *options[] = {"listening_ports", listening_ports.c_str(), "document_root", config.document_root.c_str(),
                              "num_threads", WORKER_THREADS, "enable_directory_listing", "no",
@@ -263,6 +260,7 @@ bool start_server(const ServerConfig &config)
     }
 
     mg_set_request_handler(server, STREAM_URI_PREFIX, handle_stream, nullptr);
+    mg_set_request_handler(server, DEVICE_URI_PREFIX, handle_device_page, nullptr);
     mg_set_request_handler(server, DEVICES_URI, handle_devices, nullptr);
     mg_set_websocket_handler(server, CONTROL_URI, on_websocket_connect, nullptr, on_websocket_data, nullptr, nullptr);
     log_format("http server listening on %s, web root %s", listening_ports.c_str(), config.document_root.c_str());
