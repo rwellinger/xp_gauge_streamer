@@ -11,11 +11,13 @@ PLUGIN_DIR  := $(XPLANE_ROOT)/Resources/available plugins/xp_gauge_streamer
 SDK_SENTINEL      := sdk/XPLM/XPLMPlugin.h
 CIVETWEB_SENTINEL := vendor/civetweb/include/civetweb.h
 CATCH2_SENTINEL   := vendor/catch2/catch_amalgamated.hpp
+JSON_SENTINEL     := vendor/json.hpp
 
 CIVETWEB_VERSION := 1.16
 CATCH2_VERSION   := 3.15.3
+JSON_VERSION     := 3.12.0
 
-DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) jpeg-turbo
+DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) jpeg-turbo
 
 .PHONY: help all setup jpeg-turbo build test install format lint sanitize release release-build cleanup-tags cleanup-runs clean distclean
 
@@ -29,7 +31,7 @@ help:
 	@echo ""
 	@echo "Common:"
 	@echo "  help            Show this message (default)"
-	@echo "  setup           Download X-Plane SDK, civetweb, Catch2; install libjpeg-turbo"
+	@echo "  setup           Download X-Plane SDK, civetweb, Catch2, nlohmann/json; install libjpeg-turbo"
 	@echo "  build           Configure + compile → build/xp_gauge_streamer.xpl"
 	@echo "  test            Build and run the Catch2 unit tests"
 	@echo "  install         Code-sign and copy plugin, web/ and default settings into X-Plane"
@@ -94,6 +96,13 @@ $(CATCH2_SENTINEL):
 	cp "$$TMP/Catch2-$(CATCH2_VERSION)/extras/catch_amalgamated.hpp" vendor/catch2/; \
 	cp "$$TMP/Catch2-$(CATCH2_VERSION)/extras/catch_amalgamated.cpp" vendor/catch2/
 	@echo "Catch2 installed."
+
+$(JSON_SENTINEL):
+	@echo "Downloading nlohmann/json v$(JSON_VERSION)..."
+	@mkdir -p vendor
+	@curl -fsSL "https://github.com/nlohmann/json/releases/download/v$(JSON_VERSION)/json.hpp" \
+	     -o vendor/json.hpp
+	@echo "nlohmann/json installed."
 
 # libjpeg-turbo comes from Homebrew rather than a vendored copy — it is a
 # build-system dependency with a native arm64/NEON build, not a single header.

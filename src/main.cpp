@@ -1,4 +1,5 @@
 #include "avionics_capture.hpp"
+#include "command_dispatch.hpp"
 #include "frame_pipeline.hpp"
 #include "http_server.hpp"
 #include "plugin_log.hpp"
@@ -99,9 +100,14 @@ PLUGIN_API void XPluginStop(void) {}
 
 PLUGIN_API int XPluginEnable(void)
 {
+    start_dispatch();
+
     const ServerConfig config{settings.bind_address, settings.port, web_root_path()};
     if (!start_server(config))
+    {
+        stop_dispatch();
         return 0;
+    }
 
     XPLMRegisterFlightLoopCallback(follow_viewers, VIEWER_CHECK_INTERVAL_SECONDS, nullptr);
     return 1;
@@ -111,8 +117,10 @@ PLUGIN_API void XPluginDisable(void)
 {
     XPLMUnregisterFlightLoopCallback(follow_viewers, nullptr);
 
-    // Server first: no handler may reach into a pipeline that is going away.
+    // Server first: no handler may reach into a pipeline — or a command queue —
+    // that is going away.
     stop_server();
+    stop_dispatch();
     set_capturing(false);
 }
 

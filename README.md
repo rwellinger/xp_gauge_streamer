@@ -18,8 +18,26 @@ With the plugin loaded, open `http://localhost:8080/` on this machine, or
 stream is at `/stream/<slug>`, with the slugs `gns430_1`, `gns430_2`,
 `gns530_1` and `gns530_2`.
 
+The start page asks the plugin which units the loaded aircraft actually has and
+shows only those — a panel with a GNS530 and a second GNS430 reports
+`gns530_1` and `gns430_2`, not `gns430_1`.
+
 Capturing only runs while a stream is open. With no viewer, the plugin costs
 X-Plane nothing.
+
+### Endpoints
+
+| Endpoint          | Purpose                                                     |
+|-------------------|-------------------------------------------------------------|
+| `/`               | Start page, lists the units this aircraft has                |
+| `/stream/<slug>`  | MJPEG stream of one unit                                     |
+| `/devices`        | JSON: slug, name and whether the unit produces frames        |
+| `/control`        | WebSocket: `{"device": "gns530_1", "button": "fpl"}`         |
+
+Button names follow X-Plane's `sim/GPS/g430n*_` commands — `fpl`, `menu`,
+`clr`, `ent`, `cursor`, `zoom_in`, `page_up`, … Only whitelisted names are
+accepted; anything else is dropped and logged. Presses are queued and executed
+on X-Plane's main thread, never from the network thread.
 
 ### Security
 
@@ -75,7 +93,7 @@ config/    default settings.cfg — installed into <X-Plane>/Output/
 web/       HTTP document root — shipped next to the .xpl, served by the plugin
 tests/     Catch2 unit tests — never link the SDK, domain logic only
 sdk/       X-Plane SDK headers + stub frameworks   (make setup)
-vendor/    civetweb, Catch2                        (make setup)
+vendor/    civetweb, nlohmann/json, Catch2         (make setup)
 ```
 
 ## Dependencies
@@ -85,6 +103,7 @@ vendor/    civetweb, Catch2                        (make setup)
 | X-Plane SDK   | 4.3.0   | `make setup`        | Plugin API, Avionics capture       |
 | civetweb      | 1.16    | `make setup`        | Embedded HTTP server + WebSocket   |
 | libjpeg-turbo | latest  | Homebrew            | JPEG encoding (arm64/NEON)         |
+| nlohmann/json | 3.12.0  | `make setup`        | Parsing control messages           |
 | Catch2        | 3.15.3  | `make setup`        | Unit tests                         |
 
 civetweb is used over mongoose because its MIT license matches this project's.

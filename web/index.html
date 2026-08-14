@@ -33,32 +33,46 @@
             display: block;
             max-width: 100%;
         }
+
+        p {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <!--
-      All four devices are listed because which ones exist depends on the
-      aircraft — a panel with a GNS530 and a second GNS430 reports 530_1 and
-      430_2, and a stream for a device the aircraft lacks simply stays blank.
-      Phase 6 replaces this page with the operable bezel.
-    -->
-    <main>
-        <figure>
-            <img src="/stream/gns430_1" alt="no frames">
-            <figcaption>GNS 430 Pilot</figcaption>
-        </figure>
-        <figure>
-            <img src="/stream/gns430_2" alt="no frames">
-            <figcaption>GNS 430 Copilot</figcaption>
-        </figure>
-        <figure>
-            <img src="/stream/gns530_1" alt="no frames">
-            <figcaption>GNS 530 Pilot</figcaption>
-        </figure>
-        <figure>
-            <img src="/stream/gns530_2" alt="no frames">
-            <figcaption>GNS 530 Copilot</figcaption>
-        </figure>
-    </main>
+    <!-- Phase 6 replaces this page with the operable bezel. -->
+    <main><p id="status">Looking for GNS units…</p></main>
+
+    <script>
+        // Which units exist depends on the aircraft's panel, so the server is
+        // asked rather than guessed. Its answer takes a moment: capturing only
+        // starts once somebody is watching.
+        fetch('/devices')
+            .then(response => response.json())
+            .then(({ devices }) => {
+                const streaming = devices.filter(device => device.streaming);
+                const main = document.querySelector('main');
+
+                if (streaming.length === 0) {
+                    document.getElementById('status').textContent =
+                        'No GNS unit in this aircraft.';
+                    return;
+                }
+
+                main.replaceChildren(...streaming.map(device => {
+                    const figure = document.createElement('figure');
+                    const image = document.createElement('img');
+                    image.src = `/stream/${device.slug}`;
+                    image.alt = device.name;
+                    const caption = document.createElement('figcaption');
+                    caption.textContent = device.name;
+                    figure.append(image, caption);
+                    return figure;
+                }));
+            })
+            .catch(() => {
+                document.getElementById('status').textContent = 'Plugin not reachable.';
+            });
+    </script>
 </body>
 </html>
