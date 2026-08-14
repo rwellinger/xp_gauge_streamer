@@ -76,6 +76,8 @@ endif()
 add_library(xp_gauge_streamer MODULE
     src/avionics_capture.cpp
     src/capture_schedule.cpp
+    src/command_catalog.cpp
+    src/command_dispatch.cpp
     src/device_registry.cpp
     src/frame_buffer.cpp
     src/frame_pipeline.cpp

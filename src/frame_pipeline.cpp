@@ -115,6 +115,18 @@ void publish_frame(DeviceId device_id, const unsigned char *rgb, int width, int 
         stream->frames.publish(rgb, width, height);
 }
 
+bool has_frames(DeviceId device_id)
+{
+    const std::lock_guard<std::mutex> streams_lock(streams_mutex);
+
+    DeviceStream *stream = find_stream(device_id);
+    if (stream == nullptr)
+        return false;
+
+    const std::lock_guard<std::mutex> jpeg_lock(stream->jpeg_mutex);
+    return !stream->jpeg.empty();
+}
+
 bool latest_jpeg(DeviceId device_id, std::vector<unsigned char> &into, std::uint64_t &sequence)
 {
     const std::lock_guard<std::mutex> streams_lock(streams_mutex);

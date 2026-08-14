@@ -24,4 +24,8 @@ void publish_frame(DeviceId device_id, const unsigned char *rgb, int width, int 
 // whether it has seen it before.
 bool latest_jpeg(DeviceId device_id, std::vector<unsigned char> &into, std::uint64_t &sequence);
 
+// True once a device has produced at least one frame. A device the aircraft's
+// panel does not have never does — that is how the server tells them apart.
+bool has_frames(DeviceId device_id);
+
 } // namespace xp_gauge_streamer
