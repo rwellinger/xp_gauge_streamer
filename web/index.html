@@ -2,140 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- user-scalable=no: a double tap next to a button must not zoom the page
+         away mid-flight. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>xp_gauge_streamer</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 1rem;
-            background: #101214;
-            color: #8a9199;
-            font: 0.9rem/1.4 system-ui, sans-serif;
-        }
-
-        nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            justify-content: center;
-            padding-bottom: 1rem;
-        }
-
-        button {
-            padding: 0.5rem 1rem;
-            border: 1px solid #2b3138;
-            border-radius: 0.4rem;
-            background: #181c20;
-            color: inherit;
-            font: inherit;
-            cursor: pointer;
-        }
-
-        button[aria-current="true"] {
-            border-color: #4c9a5c;
-            color: #d6dde3;
-        }
-
-        main {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        figure {
-            margin: 0;
-        }
-
-        figcaption {
-            padding-top: 0.4rem;
-            text-align: center;
-        }
-
-        img {
-            display: block;
-            max-width: 100%;
-        }
-
-        p {
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Phase 6 replaces this page with the operable bezel. -->
-    <nav hidden></nav>
-    <main><p>Looking for GNS units…</p></main>
+    <header>
+        <nav id="devices" aria-label="Device"></nav>
+        <p id="status" data-state="connecting">Connecting…</p>
+    </header>
 
-    <script>
-        const nav = document.querySelector('nav');
-        const main = document.querySelector('main');
+    <main>
+        <section id="screen">
+            <img id="stream" alt="GNS screen">
+        </section>
+        <section id="bezel" aria-label="Bezel"></section>
+    </main>
 
-        const message = text => main.replaceChildren(
-            Object.assign(document.createElement('p'), { textContent: text }));
-
-        const tile = device => {
-            const figure = document.createElement('figure');
-            const image = Object.assign(document.createElement('img'), {
-                src: `/stream/${device.slug}`,
-                alt: device.name,
-            });
-            const caption = Object.assign(document.createElement('figcaption'), {
-                textContent: device.name,
-            });
-            figure.append(image, caption);
-            return figure;
-        };
-
-        // Replacing the tiles drops the <img> elements of the units no longer
-        // shown, which closes their streams — and with them their capture cost.
-        const show = (devices, selection) => {
-            const shown = selection === 'all'
-                ? devices
-                : devices.filter(device => device.slug === selection);
-
-            main.replaceChildren(...shown.map(tile));
-            for (const button of nav.children) {
-                button.setAttribute('aria-current', String(button.value === selection));
-            }
-        };
-
-        // Which units exist depends on the aircraft's panel, so the server is
-        // asked rather than guessed. Its answer takes a moment: capturing only
-        // starts once somebody is watching.
-        fetch('/devices')
-            .then(response => response.json())
-            .then(({ devices }) => {
-                const streaming = devices.filter(device => device.streaming);
-                if (streaming.length === 0) {
-                    message('No GNS unit in this aircraft.');
-                    return;
-                }
-
-                const choices = streaming.length > 1
-                    ? [...streaming, { slug: 'all', name: 'All' }]
-                    : streaming;
-
-                nav.hidden = choices.length < 2;
-                nav.replaceChildren(...choices.map(device => {
-                    const button = Object.assign(document.createElement('button'), {
-                        textContent: device.name,
-                        value: device.slug,
-                    });
-                    // The hash keeps a chosen unit across reloads and makes it
-                    // linkable — a tablet can bookmark just its own screen.
-                    button.addEventListener('click', () => {
-                        location.hash = device.slug;
-                        show(streaming, device.slug);
-                    });
-                    return button;
-                }));
-
-                const wanted = location.hash.slice(1);
-                const known = choices.some(device => device.slug === wanted);
-                show(streaming, known ? wanted : streaming[0].slug);
-            })
-            .catch(() => message('Plugin not reachable.'));
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>

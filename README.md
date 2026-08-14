@@ -18,9 +18,19 @@ With the plugin loaded, open `http://localhost:8080/` on this machine, or
 stream is at `/stream/<slug>`, with the slugs `gns430_1`, `gns430_2`,
 `gns530_1` and `gns530_2`.
 
-The start page asks the plugin which units the loaded aircraft actually has and
-shows only those — a panel with a GNS530 and a second GNS430 reports
-`gns530_1` and `gns430_2`, not `gns430_1`.
+The page asks the plugin which units the loaded aircraft actually has and
+offers only those — a panel with a GNS530 and a second GNS430 reports
+`gns530_1` and `gns430_2`, not `gns430_1`. The chosen unit lives in the URL
+hash, so a tablet can bookmark just its own screen.
+
+Around the stream sits the bezel: FPL, MENU, CLR, ENT, CRSR, D→, PROC, MSG,
+OBS, CDI, VNAV, range, page and knob keys. It is drawn by the frontend, not
+captured — X-Plane hands out the GNS screen only, never its frame. Presses
+travel over the WebSocket and reach the sim as the unit's own commands.
+
+The connection state is always visible, and the page reconnects on its own
+after an X-Plane restart or a WLAN dropout — a dead frontend that looks alive
+is worse in flight than a visible error.
 
 Capturing only runs while a stream is open. With no viewer, the plugin costs
 X-Plane nothing.
@@ -90,7 +100,7 @@ X-Plane process for in-sim memory analysis.
 ```
 src/       plugin sources (X-Plane SDK)
 config/    default settings.cfg — installed into <X-Plane>/Output/
-web/       HTTP document root — shipped next to the .xpl, served by the plugin
+web/       frontend (index.html, app.js, style.css) — no framework, no build step
 tests/     Catch2 unit tests — never link the SDK, domain logic only
 sdk/       X-Plane SDK headers + stub frameworks   (make setup)
 vendor/    civetweb, nlohmann/json, Catch2         (make setup)
