@@ -6,9 +6,37 @@ Native X-Plane 12 plugin for **macOS (Apple Silicon)** that captures the default
 Laminar GNS430/530 display and streams it to a web frontend, where it can be
 operated by click or touch instead of via the cockpit popout.
 
-Status: build system only — see [issue #1](../../issues/1) for the feature work.
+Status: the GNS screen streams to the browser — see
+[issue #1](../../issues/1) for the remaining feature work.
 
 **Requirements:** macOS 12.0+ (arm64) · X-Plane 12 · CMake 3.21+ · Homebrew
+
+## Watching the stream
+
+With the plugin loaded, open `http://localhost:8080/` on this machine, or
+`http://<mac-ip>:8080/` from a tablet in the same network. A single device
+stream is at `/stream/<slug>`, with the slugs `gns430_1`, `gns430_2`,
+`gns530_1` and `gns530_2`.
+
+Capturing only runs while a stream is open. With no viewer, the plugin costs
+X-Plane nothing.
+
+### Security
+
+**The server has no authentication.** It binds to `0.0.0.0` on purpose — a
+tablet as a second screen is the point of this plugin — so anyone on the same
+network can watch the GNS, and from phase 6 on also operate it. Use it on a
+network you trust, or restrict the server to this machine:
+
+```
+# <X-Plane>/Output/xp_gauge_streamer/settings.cfg
+bind_address = 127.0.0.1
+port = 8080
+```
+
+The file is written with the defaults on first start. Settings live under
+`Output/` so a plugin update leaves them alone; changes take effect on the next
+X-Plane start.
 
 ## Build
 
@@ -42,6 +70,7 @@ X-Plane process for in-sim memory analysis.
 
 ```
 src/       plugin sources (X-Plane SDK)
+web/       HTTP document root — shipped next to the .xpl, served by the plugin
 tests/     Catch2 unit tests — never link the SDK, domain logic only
 sdk/       X-Plane SDK headers + stub frameworks   (make setup)
 vendor/    civetweb, Catch2                        (make setup)

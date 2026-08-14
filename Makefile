@@ -29,7 +29,7 @@ help:
 	@echo "  setup           Download X-Plane SDK, civetweb, Catch2; install libjpeg-turbo"
 	@echo "  build           Configure + compile → build/xp_gauge_streamer.xpl"
 	@echo "  test            Build and run the Catch2 unit tests"
-	@echo "  install         Code-sign and copy the plugin into X-Plane (mac_x64)"
+	@echo "  install         Code-sign and copy the plugin + web/ into X-Plane (mac_x64)"
 	@echo "  sanitize        Build + run the unit tests under ASan + UBSan"
 	@echo "  clean           Remove build/, build-lint/ and build-sanitize/"
 	@echo "  distclean       clean + remove sdk/ and vendor/ (everything 'make setup' installed)"
@@ -129,6 +129,9 @@ install:
 	@codesign --force --deep --sign - "$(PLUGIN_DIR)/mac_x64/xp_gauge_streamer.xpl"
 	@echo "Signed:    $(PLUGIN_DIR)/mac_x64/xp_gauge_streamer.xpl"
 	@echo "Installed: $(PLUGIN_DIR)/mac_x64/xp_gauge_streamer.xpl"
+	@rm -rf "$(PLUGIN_DIR)/web"
+	@cp -R web "$(PLUGIN_DIR)/web"
+	@echo "Installed: $(PLUGIN_DIR)/web (HTTP document root)"
 	@echo ""
 	@echo "Plugin installed. Restart X-Plane to load it."
 

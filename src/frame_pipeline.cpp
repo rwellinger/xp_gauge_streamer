@@ -35,6 +35,13 @@ struct DeviceStream
 // survives the moves a growing vector of values would perform.
 std::vector<std::unique_ptr<DeviceStream>> streams;
 
+// The HTTP server reads frames from civetweb's threads while the main thread
+// starts and stops the pipeline as viewers come and go. Guards the vector, not
+// a stream's contents — those have their own mutex.
+std::mutex streams_mutex;
+
+// Callers must hold streams_mutex; the returned stream stays valid only for as
+// long as they do.
 DeviceStream *find_stream(DeviceId device_id)
 {
     for (const std::unique_ptr<DeviceStream> &stream : streams)
@@ -66,6 +73,8 @@ void encode_frames(DeviceStream &stream)
 
 void start_pipeline()
 {
+    const std::lock_guard<std::mutex> lock(streams_mutex);
+
     for (const DeviceDescriptor &descriptor : all_devices())
     {
         if (!descriptor.enabled || find_stream(descriptor.device_id) != nullptr)
@@ -85,6 +94,8 @@ void start_pipeline()
 
 void stop_pipeline()
 {
+    const std::lock_guard<std::mutex> lock(streams_mutex);
+
     for (const std::unique_ptr<DeviceStream> &stream : streams)
     {
         stream->frames.stop();
@@ -97,6 +108,8 @@ void stop_pipeline()
 
 void publish_frame(DeviceId device_id, const unsigned char *rgb, int width, int height)
 {
+    const std::lock_guard<std::mutex> lock(streams_mutex);
+
     DeviceStream *stream = find_stream(device_id);
     if (stream != nullptr)
         stream->frames.publish(rgb, width, height);
@@ -104,11 +117,13 @@ void publish_frame(DeviceId device_id, const unsigned char *rgb, int width, int 
 
 bool latest_jpeg(DeviceId device_id, std::vector<unsigned char> &into, std::uint64_t &sequence)
 {
+    const std::lock_guard<std::mutex> streams_lock(streams_mutex);
+
     DeviceStream *stream = find_stream(device_id);
     if (stream == nullptr)
         return false;
 
-    const std::lock_guard<std::mutex> lock(stream->jpeg_mutex);
+    const std::lock_guard<std::mutex> jpeg_lock(stream->jpeg_mutex);
     if (stream->jpeg.empty())
         return false;
 

@@ -79,9 +79,12 @@ add_library(xp_gauge_streamer MODULE
     src/device_registry.cpp
     src/frame_buffer.cpp
     src/frame_pipeline.cpp
+    src/http_server.cpp
     src/jpeg_encoder.cpp
     src/main.cpp
     src/plugin_log.cpp
+    src/plugin_paths.cpp
+    src/settings.cpp
 )
 
 set_target_properties(xp_gauge_streamer PROPERTIES
