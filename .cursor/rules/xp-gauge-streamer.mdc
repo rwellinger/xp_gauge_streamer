@@ -1,0 +1,63 @@
+---
+description: xp_gauge_streamer architecture, build commands, and coding standards
+alwaysApply: true
+---
+
+# xp_gauge_streamer
+
+C++17 X-Plane 12 plugin for **macOS Apple Silicon (arm64) only**. Shown in-sim as
+**Welly's Gauge Streamer**. Captures Laminar GNS430/530, streams MJPEG to a
+browser frontend, and forwards presses back over WebSocket.
+
+Same guidance as [CLAUDE.md](../../CLAUDE.md) for Claude Code.
+
+## Commands
+
+```bash
+make setup     # SDK, civetweb, Catch2, json, ImGui; libjpeg-turbo via Homebrew
+make build     # → build/xp_gauge_streamer.xpl
+make test      # Catch2 unit tests (no SDK link)
+make install   # Code-sign + deploy plugin, web/, default settings
+make format    # clang-format over src/
+make lint      # clang-tidy (bugprone-* and performance-* are errors)
+make sanitize  # unit tests under ASan + UBSan
+make release VERSION=x.y.z
+```
+
+Validate the plugin in X-Plane 12. Unit tests cover domain logic only.
+
+## Architecture
+
+Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
+
+- **`main.cpp`** — Entry points; `follow_viewers` enables readback only while streams are open
+- **`avionics_capture`** — Draw callbacks; raw RGB on main thread; `set_readback_enabled`
+- **`frame_pipeline`** — Per-device encoder threads (libjpeg-turbo); `publish_frame` / `latest_jpeg`
+- **`http_server`** — civetweb: static `web/`, `/stream/<slug>`, `/devices`, `/control` (no auth)
+- **`command_dispatch`** — Queue presses from network → execute on main thread; whitelist via `command_catalog`
+- **`device_registry`** — GNS table (`slug`, `type`, `command_prefix`); SDK-free `DeviceId`
+- **`plugin_ui`** — Dear ImGui settings window
+- **`settings`** — `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
+
+**Frontend:** plain `web/` (no framework). Bezels in `web/bezels/<type>.json`.
+
+**Threading:** capture + XPLM on main thread; encode + HTTP off-thread; presses only via `press_button`.
+
+## Build Details
+
+- CMake 3.21+, C++17, macOS 12.0+, **arm64 only**
+- `sdk/` and `vendor/` from `make setup`, not committed
+- libjpeg-turbo linked statically
+- `.xpl` not ASan-instrumented — use Instruments.app for in-sim analysis
+
+## Code Quality
+
+- **Single responsibility**: each function does one thing; each module owns one concern.
+- **Meaningful names**: plain English — no abbreviations, no cryptic suffixes.
+- **Small functions, shallow nesting**: early returns and helpers over deep conditionals.
+- **DRY**: extract shared logic; don't abstract speculatively.
+- **Encapsulation**: statics private to the translation unit; expose only what the header promises.
+- **Separation of concerns**: UI never does file I/O; data modules never draw.
+- **Minimal comments**: comment only non-obvious *why*.
+- **No speculative generality**: match existing style; no hypothetical abstractions.
+- **Boundaries only for validation**: trust internals; validate at edges.

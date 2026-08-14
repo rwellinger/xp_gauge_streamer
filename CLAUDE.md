@@ -1,13 +1,73 @@
 # CLAUDE.md
 
-Project guidance for Claude Code and other AI assistants working in this repository.
+Project guidance for Claude Code and other AI assistants. Cursor reads the same
+content from [`.cursor/rules/xp-gauge-streamer.mdc`](.cursor/rules/xp-gauge-streamer.mdc).
 
 ## Project Overview
 
-**xp_gauge_streamer** is an X-Plane 12 plugin that captures the default Laminar
-GNS430/530 display and streams it to a web frontend, where it can be operated by
-click/touch instead of via the cockpit popout. Target platform is macOS Apple
-Silicon (arm64) only.
+**xp_gauge_streamer** (shown in-sim as **Welly's Gauge Streamer**) is a C++17
+X-Plane 12 plugin for **macOS Apple Silicon (arm64) only**. It captures the
+default Laminar GNS430/530 display, streams MJPEG to a browser frontend, and
+forwards button/knob presses back into the sim over a WebSocket.
+
+## Commands
+
+```bash
+make setup     # Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui; install libjpeg-turbo
+make build     # Configure + compile → build/xp_gauge_streamer.xpl
+make test      # Run the Catch2 unit tests
+make install   # Code-sign and copy plugin, web/ and default settings into X-Plane
+make format    # clang-format over src/
+make lint      # clang-tidy (bugprone-* and performance-* are errors)
+make sanitize  # Build + run unit tests under ASan + UBSan in build-sanitize/
+make release VERSION=x.y.z   # Tag + push release (commits VERSION.txt)
+```
+
+The plugin itself must still be validated in X-Plane 12. Unit tests cover domain
+logic only — they never link the X-Plane SDK.
+
+## Architecture
+
+Everything lives in the `xp_gauge_streamer` namespace. Modules coordinate through
+X-Plane's XPLM API; network threads must never call XPLM.
+
+- **`main.cpp`** — Plugin entry points (`XPluginStart` / `Stop` / `Enable` /
+  `Disable`). Starts capture, pipeline, HTTP server, and command dispatch.
+  Flight loop `follow_viewers` enables framebuffer readback only while
+  `active_stream_count() > 0`.
+- **`avionics_capture`** — Registers draw callbacks per device; copies raw RGB
+  (bottom-up) on the main thread into a `FrameSink`. Expensive readback is
+  gated by `set_readback_enabled`.
+- **`frame_pipeline`** — One encoder thread per enabled device; JPEG via
+  libjpeg-turbo. `publish_frame` copies and returns; `latest_jpeg` serves the
+  newest encoded frame to the HTTP layer.
+- **`http_server`** — Embedded civetweb: static `web/`, MJPEG `/stream/<slug>`,
+  JSON `/devices`, WebSocket `/control`. No authentication; binds per
+  `settings.cfg`.
+- **`command_dispatch`** — Queues presses from network threads; a flight loop
+  executes them on the main thread. Only whitelisted button names from
+  `command_catalog` are accepted.
+- **`device_registry`** — Static table of GNS units (`slug`, `type`,
+  `command_prefix`, enabled flag). SDK-free `DeviceId` so unit tests can link it.
+- **`plugin_ui`** — Dear ImGui settings window (address, port, device presence).
+- **`settings`** — Reads/writes `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
+  so updates do not wipe user config.
+
+**Frontend.** Plain HTML/JS/CSS under `web/` — no framework, no build step.
+Bezel layouts live in `web/bezels/<type>.json` (`button`, `rocker`, `knob`).
+
+**Threading invariant.** Capture and XPLM calls stay on the main thread. Encoding
+and HTTP run off-thread. Button presses cross that boundary only via
+`press_button` → dispatch queue.
+
+## Build Details
+
+- **CMake 3.21+**, C++17, macOS 12.0+, **arm64 only** (no Universal Binary)
+- Output is `build/xp_gauge_streamer.xpl`
+- `sdk/` and `vendor/` are populated by `make setup`, not committed
+- libjpeg-turbo is linked **statically** so the `.xpl` is self-contained
+- The `.xpl` is intentionally not ASan-instrumented — use Instruments.app against
+  the running X-Plane process for in-sim memory analysis
 
 ## Code Quality
 
