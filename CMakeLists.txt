@@ -74,6 +74,7 @@ endif()
 
 # ── Plugin target ─────────────────────────────────────────────────────────────
 add_library(xp_gauge_streamer MODULE
+    src/device_registry.cpp
     src/main.cpp
 )
 
