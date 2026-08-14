@@ -74,8 +74,11 @@ endif()
 
 # ── Plugin target ─────────────────────────────────────────────────────────────
 add_library(xp_gauge_streamer MODULE
+    src/avionics_capture.cpp
+    src/capture_schedule.cpp
     src/device_registry.cpp
     src/main.cpp
+    src/plugin_log.cpp
 )
 
 set_target_properties(xp_gauge_streamer PROPERTIES

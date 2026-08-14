@@ -1,22 +1,15 @@
-// Phase 0 capture spike (issue #2). Deliberately throwaway: it answers whether
-// glReadPixels returns real pixels inside an avionics draw callback while
-// X-Plane renders through Metal. Replaced by avionics_capture in phase 2.
+#include "avionics_capture.hpp"
+#include "plugin_log.hpp"
 
-#include <XPLM/XPLMDisplay.h>
 #include <XPLM/XPLMPlugin.h>
+#include <XPLM/XPLMProcessing.h>
 #include <XPLM/XPLMUtilities.h>
 #include <civetweb.h>
 #include <turbojpeg.h>
 
-#include <OpenGL/gl.h>
-
-#include <array>
-#include <cstdarg>
-#include <cstdint>
 #include <cstdio>
-#include <fstream>
-#include <string>
-#include <vector>
+
+using namespace xp_gauge_streamer;
 
 namespace
 {
@@ -29,43 +22,28 @@ constexpr char PLUGIN_DESCRIPTION[] =
 // X-Plane's plugin API hands out fixed 256-byte buffers for name/signature/description.
 constexpr size_t XPLM_STRING_BUFFER_SIZE = 256;
 
-// A powered-down GNS draws an all-black screen, which is indistinguishable from
-// a failed readback. So the spike keeps retrying until it sees non-black pixels
-// instead of judging on a single early frame.
-constexpr long CAPTURE_INTERVAL = 300;
+constexpr double FRAME_REPORT_INTERVAL_SECONDS = 5.0;
 
-struct SpikeDevice
+// Stand-in until the frame_buffer of phase 3 (issue #5) takes the frames. It
+// only counts them, which is what verifies the capture rate.
+struct FrameCounter
 {
-    XPLMDeviceID   device_id;
-    const char    *name;
-    XPLMAvionicsID handle        = nullptr;
-    long           callCount     = 0;
-    bool           captured      = false;
-    bool           loggedContext = false;
-};
+    long   frames         = 0;
+    double last_report_at = 0.0;
+} frame_counter;
 
-std::array<SpikeDevice, 4> spike_devices = {{
-    {xplm_device_GNS430_1, "GNS430_1"},
-    {xplm_device_GNS430_2, "GNS430_2"},
-    {xplm_device_GNS530_1, "GNS530_1"},
-    {xplm_device_GNS530_2, "GNS530_2"},
-}};
-
-void log_line(const char *message)
+void count_frame(DeviceId device_id, const unsigned char *rgb, int width, int height)
 {
-    char line[512];
-    std::snprintf(line, sizeof(line), "[%s] %s\n", PLUGIN_NAME, message);
-    XPLMDebugString(line);
-}
+    ++frame_counter.frames;
 
-__attribute__((format(printf, 1, 2))) void log_format(const char *format, ...)
-{
-    char    message[448];
-    va_list args;
-    va_start(args, format);
-    std::vsnprintf(message, sizeof(message), format, args);
-    va_end(args);
-    log_line(message);
+    const double now     = XPLMGetElapsedTime();
+    const double elapsed = now - frame_counter.last_report_at;
+    if (elapsed < FRAME_REPORT_INTERVAL_SECONDS)
+        return;
+
+    log_format("capture rate: %.1f frames/s across all devices", static_cast<double>(frame_counter.frames) / elapsed);
+    frame_counter.frames         = 0;
+    frame_counter.last_report_at = now;
 }
 
 void log_dependency_versions()
@@ -73,170 +51,6 @@ void log_dependency_versions()
     log_format("version %s, civetweb %s, libjpeg-turbo %d.%d.%d", XP_GAUGE_STREAMER_VERSION, mg_version(),
                TURBOJPEG_VERSION_NUMBER / 1000000, (TURBOJPEG_VERSION_NUMBER / 1000) % 1000,
                TURBOJPEG_VERSION_NUMBER % 1000);
-}
-
-std::string output_path(const char *filename)
-{
-    char system_path[512] = {0};
-    XPLMGetSystemPath(system_path);
-    return std::string(system_path) + "Output/" + filename;
-}
-
-bool write_jpeg(const std::string &path, const unsigned char *rgb, int width, int height)
-{
-    tjhandle compressor = tj3Init(TJINIT_COMPRESS);
-    if (compressor == nullptr)
-        return false;
-
-    tj3Set(compressor, TJPARAM_QUALITY, 90);
-    tj3Set(compressor, TJPARAM_SUBSAMP, TJSAMP_444);
-    // OpenGL's origin is bottom-left, so let turbojpeg flip instead of us.
-    tj3Set(compressor, TJPARAM_BOTTOMUP, 1);
-
-    unsigned char *jpeg      = nullptr;
-    size_t         jpeg_size = 0;
-    bool           ok        = tj3Compress8(compressor, rgb, width, 0, height, TJPF_RGB, &jpeg, &jpeg_size) == 0;
-
-    if (!ok)
-        log_format("JPEG compression failed: %s", tj3GetErrorStr(compressor));
-
-    if (ok)
-    {
-        std::ofstream file(path, std::ios::binary);
-        ok =
-            file.is_open() && file.write(reinterpret_cast<const char *>(jpeg), static_cast<std::streamsize>(jpeg_size));
-        if (ok)
-            log_format("wrote %zu bytes to %s", jpeg_size, path.c_str());
-        else
-            log_format("could not write %s", path.c_str());
-    }
-
-    tj3Free(jpeg);
-    tj3Destroy(compressor);
-    return ok;
-}
-
-size_t count_non_zero(const std::vector<unsigned char> &pixels)
-{
-    size_t non_zero = 0;
-    for (unsigned char value : pixels)
-    {
-        if (value != 0)
-            ++non_zero;
-    }
-    return non_zero;
-}
-
-// Legacy <OpenGL/gl.h> is GL 2.1 and lacks these names; the values are stable.
-#ifndef GL_FRAMEBUFFER_BINDING
-constexpr GLenum GL_FRAMEBUFFER_BINDING = 0x8CA6;
-#endif
-#ifndef GL_SAMPLE_BUFFERS
-constexpr GLenum GL_SAMPLE_BUFFERS = 0x80A8;
-#endif
-
-void log_gl_context(const SpikeDevice &device)
-{
-    GLint framebuffer = 0;
-    GLint read_buffer = 0;
-    GLint samples     = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &framebuffer);
-    glGetIntegerv(GL_READ_BUFFER, &read_buffer);
-    glGetIntegerv(GL_SAMPLE_BUFFERS, &samples);
-    log_format("%s: fbo=%d read_buffer=0x%04x sample_buffers=%d bound=%s", device.name, framebuffer,
-               static_cast<unsigned>(read_buffer), samples, XPLMIsAvionicsBound(device.handle) != 0 ? "yes" : "no");
-}
-
-bool capture_once(SpikeDevice &device)
-{
-    if (!device.loggedContext)
-    {
-        device.loggedContext = true;
-        log_gl_context(device);
-    }
-
-    GLint viewport[4] = {0, 0, 0, 0};
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    const int width  = viewport[2];
-    const int height = viewport[3];
-    if (width <= 0 || height <= 0)
-    {
-        log_format("%s: unusable viewport %dx%d, no capture", device.name, width, height);
-        return false;
-    }
-
-    std::vector<unsigned char> pixels(static_cast<size_t>(width) * static_cast<size_t>(height) * 3);
-
-    GLint saved_alignment = 4;
-    glGetIntegerv(GL_PACK_ALIGNMENT, &saved_alignment);
-    // Without this a width not divisible by 4 gets row padding and a skewed image.
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glFinish();
-    glReadPixels(viewport[0], viewport[1], width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-    const GLenum error = glGetError();
-    glPixelStorei(GL_PACK_ALIGNMENT, saved_alignment);
-
-    const size_t non_zero = count_non_zero(pixels);
-    log_format("%s: %dx%d, glReadPixels error=0x%04x, %zu of %zu bytes non-zero", device.name, width, height, error,
-               non_zero, pixels.size());
-
-    if (error != GL_NO_ERROR || non_zero == 0)
-        return false;
-
-    return write_jpeg(output_path((std::string("xp_gauge_streamer_spike_") + device.name + ".jpg").c_str()),
-                      pixels.data(), width, height);
-}
-
-int draw_after(XPLMDeviceID device_id, int is_before, void *refcon)
-{
-    auto *device = static_cast<SpikeDevice *>(refcon);
-    ++device->callCount;
-
-    if (!device->captured && device->callCount % CAPTURE_INTERVAL == 0)
-        device->captured = capture_once(*device);
-
-    return 1;
-}
-
-void register_devices()
-{
-    for (SpikeDevice &device : spike_devices)
-    {
-        XPLMCustomizeAvionics_t params = {};
-        params.structSize              = sizeof(XPLMCustomizeAvionics_t);
-        params.deviceId                = device.device_id;
-        params.drawCallbackAfter       = draw_after;
-        params.refcon                  = &device;
-
-        device.handle = XPLMRegisterAvionicsCallbacksEx(&params);
-        log_format("%s: register %s", device.name, device.handle != nullptr ? "ok" : "FAILED");
-    }
-}
-
-void unregister_devices()
-{
-    for (SpikeDevice &device : spike_devices)
-    {
-        if (device.handle != nullptr)
-        {
-            XPLMUnregisterAvionicsCallbacks(device.handle);
-            device.handle = nullptr;
-        }
-        device.callCount = 0;
-        device.captured  = false;
-    }
-}
-
-void log_bound_devices()
-{
-    for (const SpikeDevice &device : spike_devices)
-    {
-        if (device.handle == nullptr)
-            continue;
-        log_format("%s: bound to current aircraft: %s", device.name,
-                   XPLMIsAvionicsBound(device.handle) != 0 ? "yes" : "no");
-    }
 }
 
 } // namespace
@@ -259,14 +73,12 @@ PLUGIN_API void XPluginStop(void) {}
 
 PLUGIN_API int XPluginEnable(void)
 {
-    register_devices();
+    frame_counter.frames         = 0;
+    frame_counter.last_report_at = XPLMGetElapsedTime();
+    start_capture(count_frame);
     return 1;
 }
 
-PLUGIN_API void XPluginDisable(void) { unregister_devices(); }
+PLUGIN_API void XPluginDisable(void) { stop_capture(); }
 
-PLUGIN_API void XPluginReceiveMessage(XPLMPluginID from, int message, void *param)
-{
-    if (message == XPLM_MSG_PLANE_LOADED && reinterpret_cast<intptr_t>(param) == 0)
-        log_bound_devices();
-}
+PLUGIN_API void XPluginReceiveMessage(XPLMPluginID from, int message, void *param) {}
