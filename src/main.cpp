@@ -44,8 +44,12 @@ void log_dependency_versions()
                TURBOJPEG_VERSION_NUMBER % 1000);
 }
 
+// Also the only place allowed to ask the sim which units the aircraft has: the
+// selection page reads that answer from the HTTP handler, off the main thread.
 float follow_viewers(float, float, int, void *)
 {
+    refresh_device_presence();
+
     const bool wanted = active_stream_count() > 0;
     if (wanted != streaming)
     {

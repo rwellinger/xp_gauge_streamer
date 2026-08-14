@@ -46,6 +46,14 @@ TEST_CASE("command prefix follows the unit, not the model", "[device_registry]")
     CHECK(gns530_copilot->command_prefix == "sim/GPS/g430n2_");
 }
 
+TEST_CASE("the type names the model, the slug the instance", "[device_registry]")
+{
+    CHECK(find_device_by_slug("gns430_1")->type == "gns430");
+    CHECK(find_device_by_slug("gns430_2")->type == "gns430");
+    CHECK(find_device_by_slug("gns530_1")->type == "gns530");
+    CHECK(find_device_by_slug("gns530_2")->type == "gns530");
+}
+
 TEST_CASE("every descriptor has a unique slug and device id", "[device_registry]")
 {
     for (const DeviceDescriptor &device : all_devices())

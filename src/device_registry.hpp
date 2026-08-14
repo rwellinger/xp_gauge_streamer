@@ -13,7 +13,8 @@ using DeviceId = int;
 struct DeviceDescriptor
 {
     DeviceId         device_id;
-    std::string_view slug;           // URL path segment, e.g. "gns430_1"
+    std::string_view slug;           // URL path segment and instance, e.g. "gns430_1"
+    std::string_view type;           // model, e.g. "gns430" — picks bezel and button set
     std::string_view display_name;   // shown in the web frontend
     std::string_view command_prefix; // e.g. "sim/GPS/g430n1_"
     bool             enabled;

@@ -11,12 +11,13 @@
 </head>
 <body>
     <header>
-        <h1>Welly's Gauge Streamer</h1>
-        <p id="status" data-state="connecting">Loading…</p>
+        <a class="back" href="/">‹ Devices</a>
+        <h1 id="device-name"></h1>
+        <p id="status" data-state="connecting">Connecting…</p>
     </header>
 
-    <main id="devices" class="picker" aria-label="Devices"></main>
+    <main id="panel" aria-label="Bezel"></main>
 
-    <script type="module" src="/index.js"></script>
+    <script type="module" src="/device.js"></script>
 </body>
 </html>

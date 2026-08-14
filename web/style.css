@@ -1,13 +1,16 @@
 :root {
-    /* Touch targets: 44px is the smallest a finger hits reliably in turbulence. */
-    --key-size: 3rem;
     --gap: 0.5rem;
     --panel: #181c20;
+    --key: #23282e;
     --edge: #2b3138;
     --text: #d6dde3;
     --muted: #8a9199;
     --live: #4c9a5c;
     --dead: #b4553f;
+
+    /* Overwritten per bezel: one bezel unit in pixels, so labels scale with
+       the panel instead of staying at a fixed size. */
+    --unit: 1px;
 }
 
 * {
@@ -17,6 +20,10 @@
 body {
     margin: 0;
     padding: var(--gap);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
     background: #0d0f11;
     color: var(--muted);
     font: 0.9rem/1.4 system-ui, sans-serif;
@@ -27,19 +34,29 @@ body {
     touch-action: manipulation;
 }
 
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
 header {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
     gap: var(--gap);
-    padding-bottom: var(--gap);
 }
 
-#devices {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap);
+h1 {
+    margin: 0;
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.back {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--edge);
+    border-radius: 0.4rem;
 }
 
 #status {
@@ -67,84 +84,197 @@ header {
     background: var(--muted);
 }
 
-main {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap);
-    align-items: flex-start;
-    justify-content: center;
+/* ── Selection page ───────────────────────────────────────────────────────── */
+
+.picker {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: calc(var(--gap) * 2);
+    align-content: start;
 }
 
-#screen {
-    flex: 1 1 20rem;
-    display: flex;
-    justify-content: center;
-}
-
-#stream {
-    display: block;
-    max-width: 100%;
-    background: #000;
-    border: 1px solid var(--edge);
-    border-radius: 0.3rem;
-}
-
-#bezel {
+.tile {
     display: flex;
     flex-direction: column;
-    gap: var(--gap);
+    gap: 0.3rem;
+    padding: var(--gap);
+    border: 1px solid var(--edge);
+    border-radius: 0.6rem;
+    background: var(--panel);
+    color: var(--text);
+    text-decoration: none;
 }
 
-.group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap);
-    align-items: center;
+.tile[data-absent="true"] {
+    opacity: 0.45;
 }
 
-.group-label {
+.tile-name {
+    font-weight: 600;
+}
+
+.tile-state {
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.sketch {
     width: 100%;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #5c646c;
+    height: auto;
+}
+
+.sketch-body {
+    fill: #101418;
+    stroke: var(--edge);
+    stroke-width: 4;
+}
+
+.sketch-screen {
+    fill: #17342a;
+    stroke: #2f5f4c;
+    stroke-width: 3;
+}
+
+.sketch-key {
+    fill: var(--key);
+    stroke: var(--edge);
+    stroke-width: 3;
+}
+
+/* ── Bezel ────────────────────────────────────────────────────────────────── */
+
+#panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bezel {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 0.6rem;
+}
+
+.screen {
+    position: absolute;
+    background: #000;
+    border: 1px solid var(--edge);
+    /* The capture has the screen's aspect ratio, and so has its box in the
+       definition — filling it keeps the picture true to the device. */
+    object-fit: fill;
+}
+
+.control {
+    position: absolute;
 }
 
 button {
-    min-width: var(--key-size);
-    min-height: var(--key-size);
-    padding: 0 0.7rem;
     border: 1px solid var(--edge);
-    border-radius: 0.4rem;
-    background: var(--panel);
+    background: var(--key);
     color: var(--text);
-    font: 600 0.85rem/1 system-ui, sans-serif;
+    font: 600 calc(var(--unit) * 20) / 1 system-ui, sans-serif;
     cursor: pointer;
     touch-action: manipulation;
 }
 
 button:active,
 button[data-pressed="true"] {
-    background: #2a3138;
+    background: #33414c;
     border-color: var(--live);
 }
 
-button[aria-current="true"] {
-    border-color: var(--live);
+.key {
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--unit) * 8);
 }
 
-#devices button {
-    min-height: 2.2rem;
-    font-weight: 400;
+/* ── Rocker ───────────────────────────────────────────────────────────────── */
+
+.rocker {
+    display: flex;
+    gap: calc(var(--unit) * 3);
+    width: 100%;
+    height: 100%;
 }
 
-/* Portrait phone: the bezel goes under the screen and stretches full width. */
-@media (max-width: 40rem) {
-    #bezel {
-        width: 100%;
-    }
+.rocker.vertical {
+    flex-direction: column;
+}
 
-    .group {
-        justify-content: center;
-    }
+.rocker .key {
+    flex: 1;
+}
+
+/* ── Knob ─────────────────────────────────────────────────────────────────── */
+
+.knob {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.knob .face {
+    position: relative;
+    flex: 1;
+    aspect-ratio: 1;
+    margin: 0 auto;
+}
+
+.ring {
+    position: absolute;
+}
+
+/* Each half is a full circle clipped down the middle, so the rings really do
+   sit inside one another instead of looking like four keys in a square. */
+.half {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    font-size: calc(var(--unit) * 26);
+}
+
+.half.decrease {
+    clip-path: inset(0 50% 0 0);
+    justify-content: flex-start;
+    padding-left: 4%;
+}
+
+.half.increase {
+    clip-path: inset(0 0 0 50%);
+    justify-content: flex-end;
+    padding-right: 4%;
+}
+
+/* Each ring inwards sits a shade lighter, so a dual knob reads as two rings
+   around a centre rather than as one flat disc. */
+.ring[data-depth="1"] .half {
+    background: #2f373f;
+}
+
+.ring[data-depth="2"] .half {
+    background: #3a444d;
+}
+
+.press {
+    position: absolute;
+    border-radius: 50%;
+    background: #3f4a54;
+    font-size: calc(var(--unit) * 16);
+}
+
+.caption {
+    text-align: center;
+    font-size: calc(var(--unit) * 15);
+    color: #5c646c;
+    letter-spacing: 0.05em;
 }

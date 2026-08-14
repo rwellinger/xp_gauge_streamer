@@ -23,8 +23,14 @@ void start_capture(FrameSink sink);
 // watches. Registration is unaffected.
 void set_readback_enabled(bool enabled);
 
-// True when the current aircraft uses the device. False for a device that is
-// switched off in the registry, since nothing is registered for it then.
+// Asks the sim which registered devices the current aircraft actually has and
+// stores the answer. Main thread only — call it regularly, an aircraft change
+// swaps the whole panel.
+void refresh_device_presence();
+
+// True when the current aircraft uses the device, as of the last
+// refresh_device_presence(). False for a device that is switched off in the
+// registry, since nothing is registered for it then. Safe from any thread.
 bool device_is_in_aircraft(DeviceId device_id);
 
 // Re-reads the registry's enabled flags and registers or unregisters devices

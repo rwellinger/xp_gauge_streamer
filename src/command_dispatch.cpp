@@ -39,7 +39,7 @@ void resolve_commands()
 {
     for (const DeviceDescriptor &device : all_devices())
     {
-        for (const std::string_view button : known_buttons())
+        for (const std::string_view button : known_buttons(device.type))
         {
             const std::string name = command_name(device.slug, button);
             if (commands.find(name) != commands.end())
