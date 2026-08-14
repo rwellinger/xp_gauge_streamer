@@ -8,6 +8,8 @@ Native X-Plane 12 plugin for **macOS (Apple Silicon)** that captures the default
 Laminar GNS430/530 display and streams it to a web frontend, where it can be
 operated by click or touch instead of via the cockpit popout.
 
+![The GNS 530 on an iPad: the streamed screen in a bezel drawn by the frontend](images/ipad-gns530.jpeg)
+
 Status: feature complete — the GNS screen streams to the browser and its keys
 operate the unit in the sim.
 
@@ -129,6 +131,7 @@ X-Plane process for in-sim memory analysis.
 ```
 src/       plugin sources (X-Plane SDK)
 config/    default settings.cfg — installed into <X-Plane>/Output/
+images/    screenshots for this README
 web/       frontend — no framework, no build step
 web/bezels/  one JSON per device type: screen area, keys, geometry, commands
 tests/     Catch2 unit tests — never link the SDK, domain logic only
