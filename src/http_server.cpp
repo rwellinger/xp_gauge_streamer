@@ -245,15 +245,11 @@ bool start_server(const ServerConfig &config)
 
     const std::string listening_ports = config.bind_address + ":" + std::to_string(config.port);
 
-    const char *options[] = {"listening_ports",
-                             listening_ports.c_str(),
-                             "document_root",
-                             config.document_root.c_str(),
-                             "num_threads",
-                             WORKER_THREADS,
-                             "enable_directory_listing",
-                             "no",
-                             nullptr};
+    const char *options[] = {"listening_ports", listening_ports.c_str(), "document_root", config.document_root.c_str(),
+                             "num_threads", WORKER_THREADS, "enable_directory_listing", "no",
+                             // The frontend is edited in place and reloaded; an
+                             // hour of browser caching would hide every change.
+                             "static_file_max_age", "0", nullptr};
 
     mg_callbacks callbacks = {};
 
