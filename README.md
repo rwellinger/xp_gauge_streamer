@@ -40,6 +40,12 @@ is worse in flight than a visible error.
 Capturing only runs while a stream is open. With no viewer, the plugin costs
 X-Plane nothing.
 
+With one stream open, expect the sim to give up roughly 4–5 % of its frame rate.
+The plugin reads the device's framebuffer back six times a second, and that
+readback happens on X-Plane's main thread. It does not depend on your monitor
+resolution — the device screen is read at its own fixed size — but a second open
+stream adds its own share. Close the tab and the cost goes away.
+
 ### Endpoints
 
 | Endpoint         | Purpose                                               |
