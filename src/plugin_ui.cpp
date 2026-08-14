@@ -32,6 +32,10 @@ constexpr float WINDOW_HEIGHT = 430.0f;
 // The URL is the reason this window exists — it gets its own oversized line.
 constexpr float URL_FONT_SCALE = 1.6f;
 
+// The default ImGui font only carries glyphs up to U+00FF, so window text stays
+// within Latin-1 — an em dash would render as a replacement character.
+constexpr char PRODUCT_NAME[] = "Welly's Gauge Streamer";
+
 ImGuiContext  *imgui_context   = nullptr;
 XPLMWindowID   input_window    = nullptr;
 XPLMMenuID     plugin_menu     = nullptr;
@@ -194,13 +198,13 @@ void draw_server_state()
 {
     if (!server_is_running())
     {
-        ImGui::TextColored(ImVec4(0.85f, 0.4f, 0.3f, 1.0f), "Server not running — is port %d taken?",
+        ImGui::TextColored(ImVec4(0.85f, 0.4f, 0.3f, 1.0f), "Server not running - is port %d taken?",
                            current_settings().port);
         return;
     }
 
     const int viewers = active_stream_count();
-    ImGui::Text("Server listening on %s:%d · %d viewer%s", current_settings().bind_address.c_str(),
+    ImGui::Text("Server listening on %s:%d, %d viewer%s", current_settings().bind_address.c_str(),
                 current_settings().port, viewers, viewers == 1 ? "" : "s");
 }
 
@@ -242,7 +246,7 @@ void draw_port_setting()
     }
 
     if (port_stored)
-        ImGui::TextDisabled("Saved — takes effect after an X-Plane restart.");
+        ImGui::TextDisabled("Saved - takes effect after an X-Plane restart.");
 }
 
 void draw_security_note()
@@ -256,9 +260,10 @@ void draw_contents()
 {
     ImGui::SetNextWindowSize(ImVec2(WINDOW_WIDTH, WINDOW_HEIGHT), ImGuiCond_FirstUseEver);
 
-    bool stays_open = true;
-    if (ImGui::Begin("xp_gauge_streamer " XP_GAUGE_STREAMER_VERSION "##xp_gauge_streamer", &stays_open,
-                     ImGuiWindowFlags_NoCollapse))
+    bool              stays_open = true;
+    const std::string title      = std::string(PRODUCT_NAME) + " " + XP_GAUGE_STREAMER_VERSION + "##xp_gauge_streamer";
+
+    if (ImGui::Begin(title.c_str(), &stays_open, ImGuiWindowFlags_NoCollapse))
     {
         draw_address();
         ImGui::Separator();
@@ -374,8 +379,8 @@ void start_ui(DevicesChanged on_devices_changed)
     ImGui_ImplOpenGL2_Init();
     last_frame_time = XPLMGetElapsedTime();
 
-    const int menu_index = XPLMAppendMenuItem(XPLMFindPluginsMenu(), "xp_gauge_streamer", nullptr, 0);
-    plugin_menu = XPLMCreateMenu("xp_gauge_streamer", XPLMFindPluginsMenu(), menu_index, toggle_window, nullptr);
+    const int menu_index = XPLMAppendMenuItem(XPLMFindPluginsMenu(), PRODUCT_NAME, nullptr, 0);
+    plugin_menu          = XPLMCreateMenu(PRODUCT_NAME, XPLMFindPluginsMenu(), menu_index, toggle_window, nullptr);
     XPLMAppendMenuItem(plugin_menu, "Stream settings", nullptr, 0);
 
     XPLMRegisterDrawCallback(render, xplm_Phase_Window, 0, nullptr);

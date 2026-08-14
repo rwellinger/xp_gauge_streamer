@@ -21,7 +21,7 @@ using namespace xp_gauge_streamer;
 namespace
 {
 
-constexpr char PLUGIN_NAME[]      = "xp_gauge_streamer";
+constexpr char PLUGIN_NAME[]      = "Welly's Gauge Streamer";
 constexpr char PLUGIN_SIGNATURE[] = "ch.thwelly.xp_gauge_streamer";
 constexpr char PLUGIN_DESCRIPTION[] =
     "Streams the GNS430/530 display to a web frontend and forwards clicks back into the sim.";
