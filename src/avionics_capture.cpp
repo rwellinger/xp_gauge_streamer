@@ -19,16 +19,50 @@ namespace
 {
 
 // The GNS screen redraws far slower than the sim renders; a readback per frame
-// would cost main-thread time for identical pixels.
-constexpr double CAPTURE_FRAMES_PER_SECOND = 12.0;
+// would cost main-thread time for identical pixels. Even with the asynchronous
+// readback below, every capture costs a synchronisation with X-Plane's Metal
+// renderer, so the rate is the main lever on what this plugin costs.
+constexpr double CAPTURE_FRAMES_PER_SECOND = 6.0;
+
+// Legacy <OpenGL/gl.h> is GL 2.1 and lacks these names; the values are stable.
+#ifndef GL_PIXEL_PACK_BUFFER
+constexpr GLenum GL_PIXEL_PACK_BUFFER = 0x88EB;
+#endif
+#ifndef GL_PIXEL_PACK_BUFFER_BINDING
+constexpr GLenum GL_PIXEL_PACK_BUFFER_BINDING = 0x88ED;
+#endif
+#ifndef GL_STREAM_READ
+constexpr GLenum GL_STREAM_READ = 0x88E1;
+#endif
+#ifndef GL_READ_ONLY
+constexpr GLenum GL_READ_ONLY = 0x88B8;
+#endif
+
+struct PixelBuffer
+{
+    GLuint name    = 0;
+    size_t bytes   = 0;
+    int    width   = 0;
+    int    height  = 0;
+    bool   pending = false;
+};
+
+// Two buffers per device: glReadPixels fills one without waiting while the
+// other — filled one capture ago and long since transferred — is mapped and
+// read. That is what keeps the readback off the critical path.
+struct DeviceBuffers
+{
+    DeviceId    device_id;
+    PixelBuffer slots[2];
+    int         next = 0;
+};
 
 struct CaptureTarget
 {
-    DeviceId                   device_id;
-    std::string                display_name;
-    XPLMAvionicsID             handle       = nullptr;
-    bool                       logged_first = false;
-    std::vector<unsigned char> pixels;
+    DeviceId       device_id;
+    std::string    display_name;
+    XPLMAvionicsID handle       = nullptr;
+    bool           logged_first = false;
 };
 
 FrameSink       frame_sink = nullptr;
@@ -37,6 +71,12 @@ CaptureSchedule schedule(CAPTURE_FRAMES_PER_SECOND);
 // Held by pointer because each target's address is handed to X-Plane as the
 // callback refcon — a reallocating vector of values would dangle.
 std::vector<std::unique_ptr<CaptureTarget>> targets;
+
+// Outlives registration: GL objects may only be deleted on the thread and
+// context that created them, and neither stop_capture() nor a device toggle
+// runs inside the draw callback. Keeping the buffers lets a re-enabled device
+// reuse them instead of leaking a fresh pair.
+std::vector<std::unique_ptr<DeviceBuffers>> device_buffers;
 
 CaptureTarget *find_target(DeviceId device_id)
 {
@@ -48,6 +88,19 @@ CaptureTarget *find_target(DeviceId device_id)
     return nullptr;
 }
 
+DeviceBuffers &buffers_for(DeviceId device_id)
+{
+    for (const std::unique_ptr<DeviceBuffers> &buffers : device_buffers)
+    {
+        if (buffers->device_id == device_id)
+            return *buffers;
+    }
+
+    device_buffers.push_back(std::make_unique<DeviceBuffers>());
+    device_buffers.back()->device_id = device_id;
+    return *device_buffers.back();
+}
+
 // Reports the readback dimensions once per device. GL_INVALID_OPERATION here
 // means the device's framebuffer is multisampled and needs a resolve blit —
 // not the case on any configuration measured so far (see issue #2).
@@ -57,6 +110,48 @@ void log_first_frame(CaptureTarget &target, int width, int height)
     const GLenum error  = glGetError();
     log_format("%s: capturing %dx%d at %.0f fps%s", target.display_name.c_str(), width, height,
                CAPTURE_FRAMES_PER_SECOND, error != GL_NO_ERROR ? " — glReadPixels FAILED" : "");
+}
+
+void start_readback(PixelBuffer &slot, const GLint *viewport, int width, int height)
+{
+    const size_t needed_bytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 3;
+
+    if (slot.name == 0)
+        glGenBuffers(1, &slot.name);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, slot.name);
+
+    if (slot.bytes != needed_bytes)
+    {
+        glBufferData(GL_PIXEL_PACK_BUFFER, static_cast<GLsizeiptr>(needed_bytes), nullptr, GL_STREAM_READ);
+        slot.bytes   = needed_bytes;
+        slot.pending = false;
+    }
+
+    // Reading into a bound pack buffer returns immediately; the transfer
+    // completes in the background.
+    glReadPixels(viewport[0], viewport[1], width, height, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+
+    slot.width   = width;
+    slot.height  = height;
+    slot.pending = true;
+}
+
+void deliver_ready_frame(CaptureTarget &target, PixelBuffer &slot)
+{
+    if (!slot.pending)
+        return;
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, slot.name);
+    const auto *pixels = static_cast<const unsigned char *>(glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY));
+
+    if (pixels != nullptr)
+    {
+        frame_sink(target.device_id, pixels, slot.width, slot.height);
+        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+    }
+
+    slot.pending = false;
 }
 
 void capture_frame(CaptureTarget &target)
@@ -71,22 +166,27 @@ void capture_frame(CaptureTarget &target)
     if (width <= 0 || height <= 0)
         return;
 
-    target.pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 3);
-
     // "The OpenGL state will be unknown" per the SDK header — save what we set.
     GLint saved_alignment = 4;
+    GLint saved_binding   = 0;
     glGetIntegerv(GL_PACK_ALIGNMENT, &saved_alignment);
+    glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &saved_binding);
     // Without this a width not divisible by 4 gets row padding and a skewed image.
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glReadPixels(viewport[0], viewport[1], width, height, GL_RGB, GL_UNSIGNED_BYTE, target.pixels.data());
-    glPixelStorei(GL_PACK_ALIGNMENT, saved_alignment);
 
-    // No glFinish and no per-frame glGetError: both stall the pipeline, and the
-    // device has already finished drawing by the time the after-callback runs.
+    DeviceBuffers &buffers = buffers_for(target.device_id);
+    start_readback(buffers.slots[buffers.next], viewport, width, height);
+
+    PixelBuffer &ready = buffers.slots[1 - buffers.next];
+    buffers.next       = 1 - buffers.next;
+
     if (!target.logged_first)
         log_first_frame(target, width, height);
 
-    frame_sink(target.device_id, target.pixels.data(), width, height);
+    deliver_ready_frame(target, ready);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, static_cast<GLuint>(saved_binding));
+    glPixelStorei(GL_PACK_ALIGNMENT, saved_alignment);
 }
 
 int draw_after(XPLMDeviceID device_id, int is_before, void *refcon)
