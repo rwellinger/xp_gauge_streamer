@@ -1,0 +1,27 @@
+#pragma once
+
+#include "device_registry.hpp"
+
+#include <cstdint>
+#include <vector>
+
+namespace xp_gauge_streamer
+{
+
+// Starts one encoder thread per enabled device.
+void start_pipeline();
+
+// Stops every encoder thread. Call after stop_capture(), so no draw callback
+// can publish into a pipeline that is shutting down.
+void stop_pipeline();
+
+// Fits FrameSink: takes raw pixels off the draw callback and hands them to the
+// device's encoder thread. Copies and returns, never waits.
+void publish_frame(DeviceId device_id, const unsigned char *rgb, int width, int height);
+
+// Copies out the most recently encoded frame of a device. False while no frame
+// has been encoded yet. `sequence` identifies the frame so a caller can tell
+// whether it has seen it before.
+bool latest_jpeg(DeviceId device_id, std::vector<unsigned char> &into, std::uint64_t &sequence);
+
+} // namespace xp_gauge_streamer

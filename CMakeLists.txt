@@ -77,6 +77,9 @@ add_library(xp_gauge_streamer MODULE
     src/avionics_capture.cpp
     src/capture_schedule.cpp
     src/device_registry.cpp
+    src/frame_buffer.cpp
+    src/frame_pipeline.cpp
+    src/jpeg_encoder.cpp
     src/main.cpp
     src/plugin_log.cpp
 )
