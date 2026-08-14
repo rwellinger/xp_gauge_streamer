@@ -13,8 +13,10 @@ Status: the GNS screen streams to the browser — see
 
 ## Watching the stream
 
-With the plugin loaded, open `http://localhost:8080/` on this machine, or
-`http://<mac-ip>:8080/` from a tablet in the same network. A single device
+**Plugins → xp_gauge_streamer → Stream settings** shows the address to type on
+the tablet, which devices this aircraft has, and the port. Or open
+`http://localhost:8080/` on this machine and `http://<mac-ip>:8080/` from a
+tablet in the same network. A single device
 stream is at `/stream/<slug>`, with the slugs `gns430_1`, `gns430_2`,
 `gns530_1` and `gns530_2`.
 
@@ -63,9 +65,9 @@ port = 8080
 ```
 
 `make install` puts the default file there and never overwrites an existing
-one; the plugin also writes it on first start if it is missing. Settings live
-under `Output/` so a plugin update leaves them alone. Changes take effect on
-the next X-Plane start.
+one; the plugin also writes it on first start if it is missing. The port can
+also be set in the plugin window. Settings live under `Output/` so a plugin
+update leaves them alone. Changes take effect on the next X-Plane start.
 
 ## Build
 
@@ -103,7 +105,7 @@ config/    default settings.cfg — installed into <X-Plane>/Output/
 web/       frontend (index.html, app.js, style.css) — no framework, no build step
 tests/     Catch2 unit tests — never link the SDK, domain logic only
 sdk/       X-Plane SDK headers + stub frameworks   (make setup)
-vendor/    civetweb, nlohmann/json, Catch2         (make setup)
+vendor/    civetweb, nlohmann/json, Dear ImGui, Catch2  (make setup)
 ```
 
 ## Dependencies
@@ -114,6 +116,7 @@ vendor/    civetweb, nlohmann/json, Catch2         (make setup)
 | civetweb      | 1.16    | `make setup`        | Embedded HTTP server + WebSocket   |
 | libjpeg-turbo | latest  | Homebrew            | JPEG encoding (arm64/NEON)         |
 | nlohmann/json | 3.12.0  | `make setup`        | Parsing control messages           |
+| Dear ImGui    | 1.92.8  | `make setup`        | In-sim settings window             |
 | Catch2        | 3.15.3  | `make setup`        | Unit tests                         |
 
 civetweb is used over mongoose because its MIT license matches this project's.

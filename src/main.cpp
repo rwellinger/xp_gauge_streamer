@@ -4,6 +4,7 @@
 #include "http_server.hpp"
 #include "plugin_log.hpp"
 #include "plugin_paths.hpp"
+#include "plugin_ui.hpp"
 #include "settings.hpp"
 
 #include <XPLM/XPLMPlugin.h>
@@ -34,9 +35,7 @@ constexpr size_t XPLM_STRING_BUFFER_SIZE = 256;
 // threads must never do that.
 constexpr float VIEWER_CHECK_INTERVAL_SECONDS = 1.0f;
 
-Settings    settings;
-std::string settings_file;
-bool        capturing = false;
+bool streaming = false;
 
 void log_dependency_versions()
 {
@@ -45,32 +44,26 @@ void log_dependency_versions()
                TURBOJPEG_VERSION_NUMBER % 1000);
 }
 
-void set_capturing(bool wanted)
-{
-    if (wanted == capturing)
-        return;
-
-    if (wanted)
-    {
-        start_pipeline();
-        start_capture(publish_frame);
-    }
-    else
-    {
-        // Capture first: once no draw callback can fire, nothing can publish
-        // into a pipeline that is shutting down.
-        stop_capture();
-        stop_pipeline();
-    }
-
-    capturing = wanted;
-    log_format("capture %s", wanted ? "started — a viewer connected" : "stopped — no viewers left");
-}
-
 float follow_viewers(float, float, int, void *)
 {
-    set_capturing(active_stream_count() > 0);
+    const bool wanted = active_stream_count() > 0;
+    if (wanted != streaming)
+    {
+        streaming = wanted;
+        set_readback_enabled(wanted);
+        log_format("capture %s", wanted ? "started — a viewer connected" : "stopped — no viewers left");
+    }
+
     return VIEWER_CHECK_INTERVAL_SECONDS;
+}
+
+// A device switched on or off in the UI needs its callback registered or
+// dropped, and its encoder thread started or joined.
+void devices_changed()
+{
+    refresh_capture_registrations();
+    stop_pipeline();
+    start_pipeline();
 }
 
 } // namespace
@@ -87,11 +80,7 @@ PLUGIN_API int XPluginStart(char *outName, char *outSignature, char *outDescript
 
     log_dependency_versions();
 
-    settings_file = settings_file_path();
-    settings      = load_settings(settings_file);
-    // Writing the defaults back makes the file discoverable — there is no UI
-    // for these settings until phase 7.
-    save_settings(settings_file, settings);
+    open_settings(settings_file_path());
 
     return 1;
 }
@@ -101,13 +90,13 @@ PLUGIN_API void XPluginStop(void) {}
 PLUGIN_API int XPluginEnable(void)
 {
     start_dispatch();
+    start_pipeline();
+    start_capture(publish_frame);
+    start_ui(devices_changed);
 
+    const Settings    &settings = current_settings();
     const ServerConfig config{settings.bind_address, settings.port, web_root_path()};
-    if (!start_server(config))
-    {
-        stop_dispatch();
-        return 0;
-    }
+    start_server(config);
 
     XPLMRegisterFlightLoopCallback(follow_viewers, VIEWER_CHECK_INTERVAL_SECONDS, nullptr);
     return 1;
@@ -118,10 +107,14 @@ PLUGIN_API void XPluginDisable(void)
     XPLMUnregisterFlightLoopCallback(follow_viewers, nullptr);
 
     // Server first: no handler may reach into a pipeline — or a command queue —
-    // that is going away.
+    // that is going away. Then capture, so no draw callback can publish into a
+    // pipeline that is shutting down.
     stop_server();
     stop_dispatch();
-    set_capturing(false);
+    stop_ui();
+    stop_capture();
+    stop_pipeline();
+    streaming = false;
 }
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID from, int message, void *param) {}

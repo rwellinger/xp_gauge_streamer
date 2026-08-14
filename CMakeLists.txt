@@ -64,6 +64,16 @@ if(NOT TURBOJPEG_INCLUDE_DIR OR NOT TURBOJPEG_LIBRARY)
     message(FATAL_ERROR "libjpeg-turbo not found. Install it with: brew install jpeg-turbo")
 endif()
 
+# ── Dear ImGui (downloaded by 'make setup' into vendor/imgui) ─────────────────
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/vendor/imgui)
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl2.cpp
+)
+
 # ── Version ───────────────────────────────────────────────────────────────────
 file(READ "${CMAKE_SOURCE_DIR}/VERSION.txt" XP_GAUGE_STREAMER_VERSION)
 string(STRIP "${XP_GAUGE_STREAMER_VERSION}" XP_GAUGE_STREAMER_VERSION)
@@ -84,9 +94,12 @@ add_library(xp_gauge_streamer MODULE
     src/http_server.cpp
     src/jpeg_encoder.cpp
     src/main.cpp
+    src/network_info.cpp
     src/plugin_log.cpp
     src/plugin_paths.cpp
+    src/plugin_ui.cpp
     src/settings.cpp
+    ${IMGUI_SOURCES}
 )
 
 set_target_properties(xp_gauge_streamer PROPERTIES
@@ -102,6 +115,7 @@ target_include_directories(xp_gauge_streamer SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/sdk/XPLM
     ${CMAKE_SOURCE_DIR}/sdk/XPWidgets
     ${CMAKE_SOURCE_DIR}/vendor
+    ${IMGUI_DIR}
     ${TURBOJPEG_INCLUDE_DIR}
 )
 
@@ -110,6 +124,7 @@ target_compile_definitions(xp_gauge_streamer PRIVATE
     XPLM200=1 XPLM210=1 XPLM300=1 XPLM301=1 XPLM302=1 XPLM303=1
     XPLM400=1 XPLM410=1   # XPLM400 brings the Avionics API used for the GNS capture
     GL_SILENCE_DEPRECATION
+    IMGUI_ENABLE_OSX_DEFAULT_CLIPBOARD_FUNCTIONS # copying the URL is the window's point
     XP_GAUGE_STREAMER_VERSION="${XP_GAUGE_STREAMER_VERSION}"
 )
 
@@ -124,6 +139,7 @@ target_link_libraries(xp_gauge_streamer PRIVATE
     "${SDK_MAC_LIBS}/XPLM.framework/Versions/Current/XPLM"
     "${SDK_MAC_LIBS}/XPWidgets.framework/Versions/Current/XPWidgets"
     "-framework OpenGL"
+    "-framework ApplicationServices" # ImGui's macOS clipboard implementation
     civetweb
     ${TURBOJPEG_LIBRARY}
 )

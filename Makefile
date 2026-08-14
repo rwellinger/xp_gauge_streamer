@@ -12,12 +12,14 @@ SDK_SENTINEL      := sdk/XPLM/XPLMPlugin.h
 CIVETWEB_SENTINEL := vendor/civetweb/include/civetweb.h
 CATCH2_SENTINEL   := vendor/catch2/catch_amalgamated.hpp
 JSON_SENTINEL     := vendor/json.hpp
+IMGUI_SENTINEL    := vendor/imgui/imgui.h
 
 CIVETWEB_VERSION := 1.16
 CATCH2_VERSION   := 3.15.3
 JSON_VERSION     := 3.12.0
+IMGUI_VERSION    := 1.92.8
 
-DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) jpeg-turbo
+DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) $(IMGUI_SENTINEL) jpeg-turbo
 
 .PHONY: help all setup jpeg-turbo build test install format lint sanitize release release-build cleanup-tags cleanup-runs clean distclean
 
@@ -31,7 +33,7 @@ help:
 	@echo ""
 	@echo "Common:"
 	@echo "  help            Show this message (default)"
-	@echo "  setup           Download X-Plane SDK, civetweb, Catch2, nlohmann/json; install libjpeg-turbo"
+	@echo "  setup           Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui; install libjpeg-turbo"
 	@echo "  build           Configure + compile → build/xp_gauge_streamer.xpl"
 	@echo "  test            Build and run the Catch2 unit tests"
 	@echo "  install         Code-sign and copy plugin, web/ and default settings into X-Plane"
@@ -103,6 +105,22 @@ $(JSON_SENTINEL):
 	@curl -fsSL "https://github.com/nlohmann/json/releases/download/v$(JSON_VERSION)/json.hpp" \
 	     -o vendor/json.hpp
 	@echo "nlohmann/json installed."
+
+$(IMGUI_SENTINEL):
+	@echo "Downloading Dear ImGui v$(IMGUI_VERSION)..."
+	@set -euo pipefail; \
+	TMP=$$(mktemp -d); \
+	trap "rm -rf $$TMP" EXIT; \
+	mkdir -p vendor/imgui/backends; \
+	curl -fsSL "https://github.com/ocornut/imgui/archive/refs/tags/v$(IMGUI_VERSION).zip" -o "$$TMP/imgui.zip"; \
+	unzip -q "$$TMP/imgui.zip" -d "$$TMP/"; \
+	SRC="$$TMP/imgui-$(IMGUI_VERSION)"; \
+	cp "$$SRC"/imgui.{h,cpp} vendor/imgui/; \
+	cp "$$SRC"/imgui_{draw,tables,widgets}.cpp vendor/imgui/; \
+	cp "$$SRC"/imgui_internal.h "$$SRC"/imconfig.h vendor/imgui/; \
+	cp "$$SRC"/imstb_{textedit,rectpack,truetype}.h vendor/imgui/; \
+	cp "$$SRC"/backends/imgui_impl_opengl2.{h,cpp} vendor/imgui/backends/
+	@echo "Dear ImGui installed."
 
 # libjpeg-turbo comes from Homebrew rather than a vendored copy — it is a
 # build-system dependency with a native arm64/NEON build, not a single header.
