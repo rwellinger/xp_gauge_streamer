@@ -1,3 +1,11 @@
+/*
+ * xp_gauge_streamer - GNS430/530 display streamer for X-Plane 12
+ * Copyright (c) 2026 thWelly
+ *
+ * Licensed under the MIT License. See the LICENSE file in the
+ * project root for full license information.
+ */
+
 #include "network_info.hpp"
 
 #include <arpa/inet.h>
