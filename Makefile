@@ -138,7 +138,7 @@ format:
 	    echo "clang-format not found. Install with: brew install llvm"; \
 	    echo "Then add to PATH: export PATH=\"\$$(brew --prefix llvm)/bin:\$$PATH\""; \
 	    exit 1; }
-	clang-format -i src/*.cpp
+	clang-format -i src/*.cpp src/*.hpp
 
 lint: $(DEPS)
 	@command -v clang-tidy >/dev/null 2>&1 || { \

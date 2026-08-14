@@ -7,7 +7,9 @@ set(CATCH2_DIR ${CMAKE_SOURCE_DIR}/vendor/catch2)
 
 add_executable(xp_gauge_streamer_tests
     ${CATCH2_DIR}/catch_amalgamated.cpp
+    ${CMAKE_SOURCE_DIR}/src/device_registry.cpp
     test_smoke.cpp
+    test_device_registry.cpp
 )
 
 target_include_directories(xp_gauge_streamer_tests PRIVATE

@@ -1,0 +1,31 @@
+#pragma once
+
+#include <string_view>
+#include <vector>
+
+namespace xp_gauge_streamer
+{
+
+// Mirrors the SDK's XPLMDeviceID (a typedef for int) so this module — and the
+// unit tests built from it — never need the X-Plane SDK headers.
+using DeviceId = int;
+
+struct DeviceDescriptor
+{
+    DeviceId         device_id;
+    std::string_view slug;           // URL path segment, e.g. "gns430_1"
+    std::string_view display_name;   // shown in the web frontend
+    std::string_view command_prefix; // e.g. "sim/GPS/g430n1_"
+    bool             enabled;
+};
+
+const std::vector<DeviceDescriptor> &all_devices();
+
+// Both lookups return nullptr when nothing matches.
+const DeviceDescriptor *find_device_by_slug(std::string_view slug);
+const DeviceDescriptor *find_device_by_id(DeviceId device_id);
+
+// Returns false when the slug is unknown; the table stays untouched then.
+bool set_device_enabled(std::string_view slug, bool enabled);
+
+} // namespace xp_gauge_streamer
