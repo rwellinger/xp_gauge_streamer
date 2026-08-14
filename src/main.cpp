@@ -29,18 +29,19 @@ constexpr char PLUGIN_DESCRIPTION[] =
 // X-Plane's plugin API hands out fixed 256-byte buffers for name/signature/description.
 constexpr size_t XPLM_STRING_BUFFER_SIZE = 256;
 
-// The device is not necessarily done initialising on its first drawn frame, so
-// the spike grabs a slightly later one.
-constexpr long CAPTURE_AT_CALL   = 30;
-constexpr long PROGRESS_INTERVAL = 300;
+// A powered-down GNS draws an all-black screen, which is indistinguishable from
+// a failed readback. So the spike keeps retrying until it sees non-black pixels
+// instead of judging on a single early frame.
+constexpr long CAPTURE_INTERVAL = 300;
 
 struct SpikeDevice
 {
     XPLMDeviceID   device_id;
     const char    *name;
-    XPLMAvionicsID handle    = nullptr;
-    long           callCount = 0;
-    bool           captured  = false;
+    XPLMAvionicsID handle        = nullptr;
+    long           callCount     = 0;
+    bool           captured      = false;
+    bool           loggedContext = false;
 };
 
 std::array<SpikeDevice, 4> spike_devices = {{
@@ -126,18 +127,43 @@ size_t count_non_zero(const std::vector<unsigned char> &pixels)
     return non_zero;
 }
 
-void capture_once(SpikeDevice &device)
+// Legacy <OpenGL/gl.h> is GL 2.1 and lacks these names; the values are stable.
+#ifndef GL_FRAMEBUFFER_BINDING
+constexpr GLenum GL_FRAMEBUFFER_BINDING = 0x8CA6;
+#endif
+#ifndef GL_SAMPLE_BUFFERS
+constexpr GLenum GL_SAMPLE_BUFFERS = 0x80A8;
+#endif
+
+void log_gl_context(const SpikeDevice &device)
 {
+    GLint framebuffer = 0;
+    GLint read_buffer = 0;
+    GLint samples     = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &framebuffer);
+    glGetIntegerv(GL_READ_BUFFER, &read_buffer);
+    glGetIntegerv(GL_SAMPLE_BUFFERS, &samples);
+    log_format("%s: fbo=%d read_buffer=0x%04x sample_buffers=%d bound=%s", device.name, framebuffer,
+               static_cast<unsigned>(read_buffer), samples, XPLMIsAvionicsBound(device.handle) != 0 ? "yes" : "no");
+}
+
+bool capture_once(SpikeDevice &device)
+{
+    if (!device.loggedContext)
+    {
+        device.loggedContext = true;
+        log_gl_context(device);
+    }
+
     GLint viewport[4] = {0, 0, 0, 0};
     glGetIntegerv(GL_VIEWPORT, viewport);
-    log_format("%s: viewport x=%d y=%d w=%d h=%d", device.name, viewport[0], viewport[1], viewport[2], viewport[3]);
 
     const int width  = viewport[2];
     const int height = viewport[3];
     if (width <= 0 || height <= 0)
     {
-        log_format("%s: unusable viewport, no capture", device.name);
-        return;
+        log_format("%s: unusable viewport %dx%d, no capture", device.name, width, height);
+        return false;
     }
 
     std::vector<unsigned char> pixels(static_cast<size_t>(width) * static_cast<size_t>(height) * 3);
@@ -146,21 +172,20 @@ void capture_once(SpikeDevice &device)
     glGetIntegerv(GL_PACK_ALIGNMENT, &saved_alignment);
     // Without this a width not divisible by 4 gets row padding and a skewed image.
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glFinish();
     glReadPixels(viewport[0], viewport[1], width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
     const GLenum error = glGetError();
     glPixelStorei(GL_PACK_ALIGNMENT, saved_alignment);
 
     const size_t non_zero = count_non_zero(pixels);
-    log_format("%s: glReadPixels error=0x%04x, %zu of %zu bytes non-zero", device.name, error, non_zero, pixels.size());
+    log_format("%s: %dx%d, glReadPixels error=0x%04x, %zu of %zu bytes non-zero", device.name, width, height, error,
+               non_zero, pixels.size());
 
     if (error != GL_NO_ERROR || non_zero == 0)
-    {
-        log_format("%s: no usable pixels — see issue #2", device.name);
-        return;
-    }
+        return false;
 
-    write_jpeg(output_path((std::string("xp_gauge_streamer_spike_") + device.name + ".jpg").c_str()), pixels.data(),
-               width, height);
+    return write_jpeg(output_path((std::string("xp_gauge_streamer_spike_") + device.name + ".jpg").c_str()),
+                      pixels.data(), width, height);
 }
 
 int draw_after(XPLMDeviceID device_id, int is_before, void *refcon)
@@ -168,15 +193,8 @@ int draw_after(XPLMDeviceID device_id, int is_before, void *refcon)
     auto *device = static_cast<SpikeDevice *>(refcon);
     ++device->callCount;
 
-    if (!device->captured && device->callCount >= CAPTURE_AT_CALL)
-    {
-        device->captured = true;
-        capture_once(*device);
-    }
-    else if (device->callCount % PROGRESS_INTERVAL == 0)
-    {
-        log_format("%s: %ld draw callbacks so far", device->name, device->callCount);
-    }
+    if (!device->captured && device->callCount % CAPTURE_INTERVAL == 0)
+        device->captured = capture_once(*device);
 
     return 1;
 }
@@ -225,6 +243,10 @@ void log_bound_devices()
 
 PLUGIN_API int XPluginStart(char *outName, char *outSignature, char *outDescription)
 {
+    // Without this the SDK hands back legacy HFS paths ("Macintosh HD:Users:…")
+    // that no file API on this platform accepts.
+    XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+
     std::snprintf(outName, XPLM_STRING_BUFFER_SIZE, "%s", PLUGIN_NAME);
     std::snprintf(outSignature, XPLM_STRING_BUFFER_SIZE, "%s", PLUGIN_SIGNATURE);
     std::snprintf(outDescription, XPLM_STRING_BUFFER_SIZE, "%s", PLUGIN_DESCRIPTION);
