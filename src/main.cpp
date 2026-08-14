@@ -1,8 +1,8 @@
 #include "avionics_capture.hpp"
+#include "frame_pipeline.hpp"
 #include "plugin_log.hpp"
 
 #include <XPLM/XPLMPlugin.h>
-#include <XPLM/XPLMProcessing.h>
 #include <XPLM/XPLMUtilities.h>
 #include <civetweb.h>
 #include <turbojpeg.h>
@@ -21,30 +21,6 @@ constexpr char PLUGIN_DESCRIPTION[] =
 
 // X-Plane's plugin API hands out fixed 256-byte buffers for name/signature/description.
 constexpr size_t XPLM_STRING_BUFFER_SIZE = 256;
-
-constexpr double FRAME_REPORT_INTERVAL_SECONDS = 5.0;
-
-// Stand-in until the frame_buffer of phase 3 (issue #5) takes the frames. It
-// only counts them, which is what verifies the capture rate.
-struct FrameCounter
-{
-    long   frames         = 0;
-    double last_report_at = 0.0;
-} frame_counter;
-
-void count_frame(DeviceId device_id, const unsigned char *rgb, int width, int height)
-{
-    ++frame_counter.frames;
-
-    const double now     = XPLMGetElapsedTime();
-    const double elapsed = now - frame_counter.last_report_at;
-    if (elapsed < FRAME_REPORT_INTERVAL_SECONDS)
-        return;
-
-    log_format("capture rate: %.1f frames/s across all devices", static_cast<double>(frame_counter.frames) / elapsed);
-    frame_counter.frames         = 0;
-    frame_counter.last_report_at = now;
-}
 
 void log_dependency_versions()
 {
@@ -73,12 +49,17 @@ PLUGIN_API void XPluginStop(void) {}
 
 PLUGIN_API int XPluginEnable(void)
 {
-    frame_counter.frames         = 0;
-    frame_counter.last_report_at = XPLMGetElapsedTime();
-    start_capture(count_frame);
+    start_pipeline();
+    start_capture(publish_frame);
     return 1;
 }
 
-PLUGIN_API void XPluginDisable(void) { stop_capture(); }
+// Capture first: once no draw callback can fire, nothing can publish into a
+// pipeline that is shutting down.
+PLUGIN_API void XPluginDisable(void)
+{
+    stop_capture();
+    stop_pipeline();
+}
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID from, int message, void *param) {}

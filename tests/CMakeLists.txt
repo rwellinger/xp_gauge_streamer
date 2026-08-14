@@ -2,6 +2,8 @@
 # Never links the X-Plane SDK — domain-logic tests only. The same SDK-free
 # translation units used by the plugin target are compiled in here so the
 # tests exercise the production code, not a re-implementation.
+# libjpeg-turbo is fair game: it is a plain library, not the SDK, and the
+# encoder cannot be tested without it.
 
 set(CATCH2_DIR ${CMAKE_SOURCE_DIR}/vendor/catch2)
 
@@ -9,9 +11,13 @@ add_executable(xp_gauge_streamer_tests
     ${CATCH2_DIR}/catch_amalgamated.cpp
     ${CMAKE_SOURCE_DIR}/src/capture_schedule.cpp
     ${CMAKE_SOURCE_DIR}/src/device_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/frame_buffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/jpeg_encoder.cpp
     test_smoke.cpp
     test_capture_schedule.cpp
     test_device_registry.cpp
+    test_frame_buffer.cpp
+    test_jpeg_encoder.cpp
 )
 
 target_include_directories(xp_gauge_streamer_tests PRIVATE
@@ -20,7 +26,10 @@ target_include_directories(xp_gauge_streamer_tests PRIVATE
 target_include_directories(xp_gauge_streamer_tests SYSTEM PRIVATE
     ${CATCH2_DIR}
     ${CMAKE_SOURCE_DIR}/vendor
+    ${TURBOJPEG_INCLUDE_DIR}
 )
+
+target_link_libraries(xp_gauge_streamer_tests PRIVATE ${TURBOJPEG_LIBRARY})
 
 target_compile_definitions(xp_gauge_streamer_tests PRIVATE
     XP_GAUGE_STREAMER_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
