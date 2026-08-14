@@ -7,21 +7,58 @@
     <style>
         body {
             margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            padding: 1rem;
             background: #101214;
+            color: #8a9199;
+            font: 0.9rem/1.4 system-ui, sans-serif;
+        }
+
+        main {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        figure {
+            margin: 0;
+        }
+
+        figcaption {
+            padding-top: 0.4rem;
+            text-align: center;
         }
 
         img {
+            display: block;
             max-width: 100%;
-            image-rendering: pixelated;
         }
     </style>
 </head>
 <body>
-    <!-- Phase 4 is the stream only; the operable bezel arrives in phase 6. -->
-    <img src="/stream/gns430_1" alt="GNS430 #1">
+    <!--
+      All four devices are listed because which ones exist depends on the
+      aircraft — a panel with a GNS530 and a second GNS430 reports 530_1 and
+      430_2, and a stream for a device the aircraft lacks simply stays blank.
+      Phase 6 replaces this page with the operable bezel.
+    -->
+    <main>
+        <figure>
+            <img src="/stream/gns430_1" alt="no frames">
+            <figcaption>GNS 430 Pilot</figcaption>
+        </figure>
+        <figure>
+            <img src="/stream/gns430_2" alt="no frames">
+            <figcaption>GNS 430 Copilot</figcaption>
+        </figure>
+        <figure>
+            <img src="/stream/gns530_1" alt="no frames">
+            <figcaption>GNS 530 Pilot</figcaption>
+        </figure>
+        <figure>
+            <img src="/stream/gns530_2" alt="no frames">
+            <figcaption>GNS 530 Copilot</figcaption>
+        </figure>
+    </main>
 </body>
 </html>
