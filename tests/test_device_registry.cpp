@@ -60,6 +60,24 @@ TEST_CASE("the type names the model, the slug the instance", "[device_registry]"
     CHECK(find_device_by_slug("gns430_2")->type == "gns430");
     CHECK(find_device_by_slug("gns530_1")->type == "gns530");
     CHECK(find_device_by_slug("gns530_2")->type == "gns530");
+    CHECK(find_device_by_slug("cdu739_1")->type == "cdu739");
+    CHECK(find_device_by_slug("cdu739_2")->type == "cdu739");
+}
+
+TEST_CASE("the CDU units carry their own command family", "[device_registry]")
+{
+    const DeviceDescriptor *captain       = find_device_by_id(4);
+    const DeviceDescriptor *first_officer = find_device_by_id(5);
+
+    REQUIRE(captain != nullptr);
+    REQUIRE(first_officer != nullptr);
+
+    CHECK(captain->slug == "cdu739_1");
+    CHECK(first_officer->slug == "cdu739_2");
+
+    // Same rule as the GNS units: the number follows the unit, not the model.
+    CHECK(captain->command_prefix == "sim/FMS/");
+    CHECK(first_officer->command_prefix == "sim/FMS2/");
 }
 
 TEST_CASE("every descriptor has a unique slug and device id", "[device_registry]")
