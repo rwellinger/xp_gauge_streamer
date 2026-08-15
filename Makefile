@@ -4,36 +4,47 @@ XPLANE_ROOT := /Users/robertw/X-Plane 12
 # Settings live in Output/ rather than the plugin folder so a plugin update,
 # which replaces that folder wholesale, leaves them alone.
 SETTINGS_DIR := $(XPLANE_ROOT)/Output/xp_gauge_streamer
-# X-Plane's folder name for 64-bit macOS plugins is mac_x64 even for an
-# arm64-only binary — the name predates Apple Silicon and is not architecture.
 PLUGIN_DIR  := $(XPLANE_ROOT)/Resources/available plugins/xp_gauge_streamer
+
+# X-Plane's folder name for this platform's binaries. mac_x64 applies to arm64
+# too — the name predates Apple Silicon and does not describe the architecture.
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    PLATFORM_FOLDER := mac_x64
+else ifeq ($(UNAME_S),Linux)
+    PLATFORM_FOLDER := lin_x64
+else
+    PLATFORM_FOLDER := win_x64
+endif
 
 SDK_SENTINEL      := sdk/XPLM/XPLMPlugin.h
 CIVETWEB_SENTINEL := vendor/civetweb/include/civetweb.h
 CATCH2_SENTINEL   := vendor/catch2/catch_amalgamated.hpp
 JSON_SENTINEL     := vendor/json.hpp
 IMGUI_SENTINEL    := vendor/imgui/imgui.h
+TURBOJPEG_SENTINEL := vendor/libjpeg-turbo/CMakeLists.txt
 
 CIVETWEB_VERSION := 1.16
 CATCH2_VERSION   := 3.15.3
 JSON_VERSION     := 3.12.0
 IMGUI_VERSION    := 1.92.8
+TURBOJPEG_VERSION := 3.2.0
 
-DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) $(IMGUI_SENTINEL) jpeg-turbo
+DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) $(IMGUI_SENTINEL) $(TURBOJPEG_SENTINEL)
 
-.PHONY: help all setup jpeg-turbo build test install format lint sanitize release release-build cleanup-tags cleanup-branches cleanup-runs clean distclean
+.PHONY: help all setup build test install format lint sanitize release release-build cleanup-tags cleanup-branches cleanup-runs clean distclean
 
 .DEFAULT_GOAL := help
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 help:
-	@echo "xp_gauge_streamer — X-Plane 12 plugin (macOS, Apple Silicon)"
+	@echo "xp_gauge_streamer — X-Plane 12 plugin (macOS arm64, Windows x64, Linux x64)"
 	@echo ""
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Common:"
 	@echo "  help            Show this message (default)"
-	@echo "  setup           Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui; install libjpeg-turbo"
+	@echo "  setup           Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui, libjpeg-turbo"
 	@echo "  build           Configure + compile → build/xp_gauge_streamer.xpl"
 	@echo "  test            Build and run the Catch2 unit tests"
 	@echo "  install         Code-sign and copy plugin, web/ and default settings into X-Plane"
@@ -124,16 +135,23 @@ $(IMGUI_SENTINEL):
 	cp "$$SRC"/backends/imgui_impl_opengl2.{h,cpp} vendor/imgui/backends/
 	@echo "Dear ImGui installed."
 
-# libjpeg-turbo comes from Homebrew rather than a vendored copy — it is a
-# build-system dependency with a native arm64/NEON build, not a single header.
-jpeg-turbo:
-	@command -v brew >/dev/null 2>&1 || { \
-	    echo "Homebrew not found — install libjpeg-turbo manually."; exit 1; }
-	@if brew list jpeg-turbo >/dev/null 2>&1; then \
-	    echo "libjpeg-turbo already installed ($$(brew --prefix jpeg-turbo))."; \
-	else \
-	    echo "Installing libjpeg-turbo..."; brew install jpeg-turbo; \
-	fi
+# Built from source as a CMake subproject rather than taken from a package
+# manager: Homebrew, apt and vcpkg disagree on layout, static/shared defaults and
+# version, and the plugin needs one predictable static library on all three
+# platforms. SIMD needs NASM on x86 (Linux: apt install nasm, Windows: choco
+# install nasm); Apple Silicon uses NEON and needs nothing.
+$(TURBOJPEG_SENTINEL):
+	@echo "Downloading libjpeg-turbo v$(TURBOJPEG_VERSION)..."
+	@set -euo pipefail; \
+	TMP=$$(mktemp -d); \
+	trap "rm -rf $$TMP" EXIT; \
+	curl -fsSL "https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/$(TURBOJPEG_VERSION).tar.gz" \
+	     -o "$$TMP/libjpeg-turbo.tar.gz"; \
+	tar -xzf "$$TMP/libjpeg-turbo.tar.gz" -C "$$TMP/"; \
+	rm -rf vendor/libjpeg-turbo; \
+	mkdir -p vendor; \
+	mv "$$TMP/libjpeg-turbo-$(TURBOJPEG_VERSION)" vendor/libjpeg-turbo
+	@echo "libjpeg-turbo installed." 
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 build: $(DEPS)
@@ -154,13 +172,15 @@ install:
 	@if [ ! -f "build/xp_gauge_streamer.xpl" ]; then \
 	    echo "Plugin not built yet. Run 'make build' first."; exit 1; \
 	fi
-	@echo "=== Installing xp_gauge_streamer ==="
-	@mkdir -p "$(PLUGIN_DIR)/mac_x64"
-	@cp build/xp_gauge_streamer.xpl "$(PLUGIN_DIR)/mac_x64/"
-	@xattr -dr com.apple.quarantine "$(PLUGIN_DIR)/mac_x64/xp_gauge_streamer.xpl" 2>/dev/null || true
-	@codesign --force --deep --sign - "$(PLUGIN_DIR)/mac_x64/xp_gauge_streamer.xpl"
-	@echo "Signed:    $(PLUGIN_DIR)/mac_x64/xp_gauge_streamer.xpl"
-	@echo "Installed: $(PLUGIN_DIR)/mac_x64/xp_gauge_streamer.xpl"
+	@echo "=== Installing xp_gauge_streamer ($(PLATFORM_FOLDER)) ==="
+	@mkdir -p "$(PLUGIN_DIR)/$(PLATFORM_FOLDER)"
+	@cp build/xp_gauge_streamer.xpl "$(PLUGIN_DIR)/$(PLATFORM_FOLDER)/"
+	@if [ "$(UNAME_S)" = "Darwin" ]; then \
+	    xattr -dr com.apple.quarantine "$(PLUGIN_DIR)/$(PLATFORM_FOLDER)/xp_gauge_streamer.xpl" 2>/dev/null || true; \
+	    codesign --force --deep --sign - "$(PLUGIN_DIR)/$(PLATFORM_FOLDER)/xp_gauge_streamer.xpl"; \
+	    echo "Signed:    $(PLUGIN_DIR)/$(PLATFORM_FOLDER)/xp_gauge_streamer.xpl"; \
+	fi
+	@echo "Installed: $(PLUGIN_DIR)/$(PLATFORM_FOLDER)/xp_gauge_streamer.xpl"
 	@rm -rf "$(PLUGIN_DIR)/web"
 	@cp -R web "$(PLUGIN_DIR)/web"
 	@echo "Installed: $(PLUGIN_DIR)/web (HTTP document root)"

@@ -30,16 +30,15 @@ target_include_directories(xp_gauge_streamer_tests PRIVATE
 target_include_directories(xp_gauge_streamer_tests SYSTEM PRIVATE
     ${CATCH2_DIR}
     ${CMAKE_SOURCE_DIR}/vendor
-    ${TURBOJPEG_INCLUDE_DIR}
 )
 
-target_link_libraries(xp_gauge_streamer_tests PRIVATE ${TURBOJPEG_LIBRARY})
+target_link_libraries(xp_gauge_streamer_tests PRIVATE turbojpeg)
 
 target_compile_definitions(xp_gauge_streamer_tests PRIVATE
     XP_GAUGE_STREAMER_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
 )
 
-target_compile_options(xp_gauge_streamer_tests PRIVATE -Wall -Wextra -Wno-unused-parameter)
+target_compile_options(xp_gauge_streamer_tests PRIVATE ${XP_WARNING_FLAGS})
 
 if(XP_GAUGE_STREAMER_SANITIZE)
     target_compile_options(xp_gauge_streamer_tests PRIVATE
