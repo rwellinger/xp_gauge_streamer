@@ -197,12 +197,26 @@ const CONTROL_KINDS = {
 // shows, so the renderer stays free of streaming concerns.
 export function renderBezel(definition, press) {
     const bezel = document.createElement('div');
-    bezel.className = 'bezel';
+    bezel.className = 'bezel notranslate';
+    // Belt and braces with the page's notranslate meta: a key says DES, not
+    // "of the", whatever the browser thinks the language is.
+    bezel.translate = false;
 
     const screen = document.createElement('img');
     screen.className = 'screen';
     screen.alt = `${definition.name} screen`;
     place(screen, definition.screen, definition.size);
+
+    // A device may hand out more black margin than it uses. `crop` gives how
+    // much of the capture to drop, in its own pixels; the screen box must then
+    // carry the ratio of what is left, and the offset decides how the surplus
+    // is split between top and bottom.
+    const crop = definition.screen.crop;
+    if (crop) {
+        screen.style.objectFit = 'cover';
+        screen.style.objectPosition = `center ${(crop.top / (crop.top + crop.bottom)) * 100}%`;
+    }
+
     bezel.append(screen);
 
     for (const control of definition.controls) {

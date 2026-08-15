@@ -1,13 +1,13 @@
 {
   "name": "CDU",
-  "size": { "width": 1000, "height": 1620 },
-  "screen": { "x": 220, "y": 36, "width": 560, "height": 616 },
+  "size": { "width": 1000, "height": 1381 },
+  "screen": { "x": 220, "y": 36, "width": 560, "height": 511, "crop": { "top": 32, "bottom": 24 } },
   "controls": [
     {
       "kind": "grid",
       "columns": 1,
-      "labelSize": 15,
-      "box": { "x": 30, "y": 165, "width": 160, "height": 406 },
+      "labelSize": 24,
+      "box": { "x": 30, "y": 105, "width": 160, "height": 406 },
       "keys": [
         { "label": "1L", "command": "ls_1l" },
         { "label": "2L", "command": "ls_2l" },
@@ -20,8 +20,8 @@
     {
       "kind": "grid",
       "columns": 1,
-      "labelSize": 15,
-      "box": { "x": 810, "y": 165, "width": 160, "height": 406 },
+      "labelSize": 24,
+      "box": { "x": 810, "y": 105, "width": 160, "height": 406 },
       "keys": [
         { "label": "1R", "command": "ls_1r" },
         { "label": "2R", "command": "ls_2r" },
@@ -34,19 +34,37 @@
     {
       "kind": "grid",
       "columns": 5,
-      "labelSize": 12,
-      "box": { "x": 40, "y": 690, "width": 920, "height": 280 },
+      "labelSize": 22,
+      "box": { "x": 40, "y": 577, "width": 641, "height": 182 },
       "keys": [
-        { "label": "INIT\nREF", "command": "index" }, { "label": "RTE", "command": "fpln" }, { "label": "CLB", "command": "clb" }, { "label": "CRZ", "command": "crz" }, { "label": "DES", "command": "des" },
-        { "label": "MENU", "command": "menu" }, { "label": "LEGS", "command": "legs" }, { "label": "DEP\nARR", "command": "dep_arr" }, { "label": "HOLD", "command": "hold" }, { "label": "PROG", "command": "prog" },
-        { "label": "N1\nLIMIT", "command": "perf" }, { "label": "FIX", "command": "fix" }, { "label": "EXEC", "command": "exec" }, { "label": "PREV\nPAGE", "command": "prev" }, { "label": "NEXT\nPAGE", "command": "next" }
+        { "label": "INDEX", "command": "index" }, { "label": "FPLN", "command": "fpln" }, { "label": "CLB", "command": "clb" }, { "label": "CRZ", "command": "crz" }, { "label": "DES", "command": "des" },
+        { "label": "DIR\nINTC", "command": "dir_intc" }, { "label": "LEGS", "command": "legs" }, { "label": "DEP\nARR", "command": "dep_arr" }, { "label": "HOLD", "command": "hold" }, { "label": "PROG", "command": "prog" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 1,
+      "labelSize": 24,
+      "box": { "x": 755, "y": 703, "width": 170, "height": 51 },
+      "keys": [
+        { "label": "EXEC", "command": "exec" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 2,
+      "labelSize": 22,
+      "box": { "x": 40, "y": 777, "width": 303, "height": 179 },
+      "keys": [
+        { "label": "FIX", "command": "fix" }, { "label": "NAV\nRAD", "command": "navrad" },
+        { "label": "PREV\nPAGE", "command": "prev" }, { "label": "NEXT\nPAGE", "command": "next" }
       ]
     },
     {
       "kind": "grid",
       "columns": 3,
-      "labelSize": 22,
-      "box": { "x": 40, "y": 1010, "width": 380, "height": 460 },
+      "labelSize": 40,
+      "box": { "x": 40, "y": 968, "width": 303, "height": 373 },
       "keys": [
         { "label": "1", "command": "key_1" }, { "label": "2", "command": "key_2" }, { "label": "3", "command": "key_3" },
         { "label": "4", "command": "key_4" }, { "label": "5", "command": "key_5" }, { "label": "6", "command": "key_6" },
@@ -57,8 +75,8 @@
     {
       "kind": "grid",
       "columns": 5,
-      "labelSize": 18,
-      "box": { "x": 450, "y": 1010, "width": 530, "height": 556 },
+      "labelSize": 35,
+      "box": { "x": 361, "y": 777, "width": 599, "height": 564 },
       "keys": [
         { "label": "A", "command": "key_A" }, { "label": "B", "command": "key_B" }, { "label": "C", "command": "key_C" }, { "label": "D", "command": "key_D" }, { "label": "E", "command": "key_E" },
         { "label": "F", "command": "key_F" }, { "label": "G", "command": "key_G" }, { "label": "H", "command": "key_H" }, { "label": "I", "command": "key_I" }, { "label": "J", "command": "key_J" },
