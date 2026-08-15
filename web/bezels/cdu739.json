@@ -69,7 +69,7 @@
         { "label": "1", "command": "key_1" }, { "label": "2", "command": "key_2" }, { "label": "3", "command": "key_3" },
         { "label": "4", "command": "key_4" }, { "label": "5", "command": "key_5" }, { "label": "6", "command": "key_6" },
         { "label": "7", "command": "key_7" }, { "label": "8", "command": "key_8" }, { "label": "9", "command": "key_9" },
-        { "label": ".", "command": "key_period" }, { "label": "0", "command": "key_0" }, { "label": "+/−", "command": "key_minus" }
+        { "label": ".", "command": "key_period" }, { "label": "0", "command": "key_0" }, { "label": "+/−", "command": "key_minus", "shortcut": "-" }
       ]
     },
     {
@@ -83,7 +83,7 @@
         { "label": "K", "command": "key_K" }, { "label": "L", "command": "key_L" }, { "label": "M", "command": "key_M" }, { "label": "N", "command": "key_N" }, { "label": "O", "command": "key_O" },
         { "label": "P", "command": "key_P" }, { "label": "Q", "command": "key_Q" }, { "label": "R", "command": "key_R" }, { "label": "S", "command": "key_S" }, { "label": "T", "command": "key_T" },
         { "label": "U", "command": "key_U" }, { "label": "V", "command": "key_V" }, { "label": "W", "command": "key_W" }, { "label": "X", "command": "key_X" }, { "label": "Y", "command": "key_Y" },
-        { "label": "Z", "command": "key_Z" }, { "label": "SP", "command": "key_space" }, { "label": "DEL", "command": "key_delete" }, { "label": "/", "command": "key_slash" }, { "label": "CLR", "command": "key_clear" }
+        { "label": "Z", "command": "key_Z" }, { "label": "SP", "command": "key_space", "shortcut": " " }, { "label": "DEL", "command": "key_delete", "shortcut": "Delete" }, { "label": "/", "command": "key_slash" }, { "label": "CLR", "command": "key_clear", "shortcut": "Backspace" }
       ]
     }
   ]

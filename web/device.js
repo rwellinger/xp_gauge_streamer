@@ -4,7 +4,7 @@
 // layout comes from that type's definition — this file knows about no device
 // in particular.
 
-import { fitBezel, loadBezel, renderBezel } from '/bezel.js';
+import { attachKeyboard, fitBezel, loadBezel, renderBezel } from '/bezel.js';
 
 const FIRST_RETRY_MS = 500;
 const LONGEST_RETRY_MS = 5000;
@@ -44,6 +44,7 @@ function showBezel(device, definition) {
     const fit = () => fitBezel(bezel, definition.size, elements.panel);
     fit();
     new ResizeObserver(fit).observe(elements.panel);
+    attachKeyboard(bezel);
 
     return screen;
 }

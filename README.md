@@ -109,6 +109,12 @@ Two options help where keys get small: `labelSize` overrides a control's label
 size, given in bezel units like every other measure, and a `\n` in a label
 breaks it across lines.
 
+Where a keyboard is at hand it can drive the keys. A caption of a single
+character answers to itself, so a letter pad needs no annotation; anything else
+names its key with `shortcut`, using the name the browser reports (`" "`,
+`"Backspace"`, `"Delete"`). Keys that name none stay mouse and touch only —
+which is why Enter does not fire EXEC.
+
 A device that hands out more black margin than it uses can give it back:
 `crop` in the screen definition says how many pixels of the capture to drop at
 the top and bottom. The screen box then carries the ratio of what is left, and
