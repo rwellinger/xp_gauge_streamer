@@ -81,11 +81,17 @@ on X-Plane's main thread, never from the network thread.
 A device's bezel comes from data, never from code. `web/bezels/<type>.json`
 gives the screen area, every key with its label and command suffix, and the
 geometry in the bezel's own units — the frontend scales that to the viewport
-and draws it. The renderer knows three control kinds: `button`, `rocker`, and
-`knob`. A knob's rings split the face by angle rather than by radius, so a dual
-knob becomes four quarter sectors around an optional press in the centre — outer
-ring left and right, inner ring up and down, every target wide enough for a
-finger in turbulence.
+and draws it. The renderer knows four control kinds: `button`, `rocker`, `knob`,
+and `grid`. A knob's rings split the face by angle rather than by radius, so a
+dual knob becomes four quarter sectors around an optional press in the centre —
+outer ring left and right, inner ring up and down, every target wide enough for a
+finger in turbulence. A `grid` is a block of equally sized keys in `columns`
+columns, which is what a keypad of dozens of keys needs instead of as many
+hand-placed boxes; an entry without a command leaves its cell empty.
+
+Two options help where keys get small: `labelSize` overrides a control's label
+size, given in bezel units like every other measure, and a `\n` in a label
+breaks it across lines.
 
 So a G1000 or an MCP takes three steps and no renderer change:
 
