@@ -65,7 +65,7 @@ void *resolve(const char *name)
     if (void *address = dlsym(RTLD_DEFAULT, name))
         return address;
 
-    using PFN_glXGetProcAddressARB = void *(*) (const unsigned char *);
+    using PFN_glXGetProcAddressARB = void *(*)(const unsigned char *);
     auto get_proc_address = reinterpret_cast<PFN_glXGetProcAddressARB>(dlsym(RTLD_DEFAULT, "glXGetProcAddressARB"));
     if (get_proc_address == nullptr)
         return nullptr;

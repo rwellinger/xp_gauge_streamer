@@ -22,6 +22,7 @@
 #include <XPLM/XPLMPlugin.h>
 #include <XPLM/XPLMUtilities.h>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdarg>
@@ -54,8 +55,9 @@ constexpr std::array<StockDevice, 6> STOCK_DEVICES = {{
     {xplm_device_CDU739_2, "CDU first officer"},
 }};
 
-constexpr int MEASURED_FRAMES = 100;
-constexpr int DUMP_FRAME      = 50;
+constexpr size_t MEASURED_FRAMES = 100;
+constexpr size_t WARMUP_FRAMES   = 10;
+constexpr int    DUMP_FRAME      = 50;
 
 std::vector<XPLMAvionicsID> registrations;
 
@@ -66,11 +68,12 @@ const char  *subject_name   = nullptr;
 
 struct Measurement
 {
-    int    frame_count      = 0;
-    double total_micros     = 0.0;
-    double slowest_micros   = 0.0;
-    double fastest_micros   = 0.0;
-    bool   summary_reported = false;
+    // Every sample is kept: an average alone hides whether the cost is a steady
+    // tax or a few stalls, and that distinction decides whether the capture rate
+    // has to become a per-platform setting.
+    std::vector<double> samples;
+    int                 frames_seen      = 0;
+    bool                summary_reported = false;
 };
 
 Measurement measurement;
@@ -199,27 +202,44 @@ void consume_ready_slot(PixelBufferSlot &slot, int frame_number)
     slot.pending = false;
 }
 
+double percentile(const std::vector<double> &sorted, double fraction)
+{
+    const size_t index = static_cast<size_t>(fraction * static_cast<double>(sorted.size() - 1));
+    return sorted[index];
+}
+
 void report_summary()
 {
     measurement.summary_reported = true;
 
-    const double average = measurement.total_micros / static_cast<double>(measurement.frame_count);
-    log_line("%s: %d frames, average %.1f us, fastest %.1f us, slowest %.1f us", subject_name,
-             measurement.frame_count, average, measurement.fastest_micros, measurement.slowest_micros);
+    std::vector<double> sorted = measurement.samples;
+    std::sort(sorted.begin(), sorted.end());
+
+    double total = 0.0;
+    for (double sample : sorted)
+        total += sample;
+
+    log_line("%s: %zu frames, median %.1f us, average %.1f us", subject_name, sorted.size(), percentile(sorted, 0.5),
+             total / static_cast<double>(sorted.size()));
+    log_line("%s: fastest %.1f us, p90 %.1f us, p99 %.1f us, slowest %.1f us", subject_name, sorted.front(),
+             percentile(sorted, 0.9), percentile(sorted, 0.99), sorted.back());
+
+    // The opening frames pay for buffer allocation and the first map, which is
+    // a startup cost rather than the steady-state price of a capture.
+    const size_t warmup       = sorted.size() < WARMUP_FRAMES ? sorted.size() : WARMUP_FRAMES;
+    double       warmup_total = 0.0;
+    for (size_t index = 0; index < warmup; ++index)
+        warmup_total += measurement.samples[index];
+
+    log_line("%s: first %zu frames averaged %.1f us", subject_name, warmup, warmup_total / static_cast<double>(warmup));
     log_line("done — copy Log.txt and spike25_frame.ppm out of the X-Plane folder");
 }
 
 void measure_frame(double micros)
 {
-    if (measurement.frame_count == 0 || micros < measurement.fastest_micros)
-        measurement.fastest_micros = micros;
-    if (micros > measurement.slowest_micros)
-        measurement.slowest_micros = micros;
+    measurement.samples.push_back(micros);
 
-    measurement.total_micros += micros;
-    ++measurement.frame_count;
-
-    if (measurement.frame_count >= MEASURED_FRAMES)
+    if (measurement.samples.size() >= MEASURED_FRAMES)
         report_summary();
 }
 
@@ -239,7 +259,7 @@ void capture_once()
         return;
     }
 
-    if (measurement.frame_count == 0)
+    if (measurement.frames_seen == 0)
         log_line("%s: viewport %dx%d at origin %d,%d", subject_name, width, height, viewport[0], viewport[1]);
 
     GLint saved_alignment = 4;
@@ -252,13 +272,19 @@ void capture_once()
 
     PixelBufferSlot &ready = slots[1 - next_slot];
     next_slot              = 1 - next_slot;
-    consume_ready_slot(ready, measurement.frame_count);
+    const bool dumping     = ready.pending && measurement.frames_seen == DUMP_FRAME;
+    consume_ready_slot(ready, measurement.frames_seen);
 
     glBindBuffer(GL_PIXEL_PACK_BUFFER, static_cast<GLuint>(saved_binding));
     glPixelStorei(GL_PACK_ALIGNMENT, saved_alignment);
 
     const auto elapsed = std::chrono::steady_clock::now() - started;
-    measure_frame(std::chrono::duration<double, std::micro>(elapsed).count());
+    ++measurement.frames_seen;
+
+    // Writing 600 KB to disk is not part of what a capture costs, so the frame
+    // that dumps the .ppm is timed like the others but kept out of the series.
+    if (!dumping)
+        measure_frame(std::chrono::duration<double, std::micro>(elapsed).count());
 }
 
 int draw_after(XPLMDeviceID device_id, int /*is_before*/, void *refcon)
