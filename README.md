@@ -109,6 +109,12 @@ Two options help where keys get small: `labelSize` overrides a control's label
 size, given in bezel units like every other measure, and a `\n` in a label
 breaks it across lines.
 
+A device that hands out more black margin than it uses can give it back:
+`crop` in the screen definition says how many pixels of the capture to drop at
+the top and bottom. The screen box then carries the ratio of what is left, and
+the bezel gets shorter — which makes everything on it larger. The CDU drops 32
+and 24 pixels of its 330.
+
 So a G1000 or an MCP takes three steps and no renderer change:
 
 1. `web/bezels/g1000.json` — the layout

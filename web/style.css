@@ -186,7 +186,7 @@ button {
     color: var(--text);
     /* A control may override --label-size when its keys are too small for the
        default, as on a CDU's letter pad. */
-    font: 600 calc(var(--unit) * var(--label-size, 18)) / 1.15 system-ui, sans-serif;
+    font: 700 calc(var(--unit) * var(--label-size, 18)) / 1.15 system-ui, sans-serif;
     /* Keeps a "\n" in a definition's label as a line break — DEP/ARR and PREV
        PAGE do not fit a CDU key on one line. */
     white-space: pre-line;

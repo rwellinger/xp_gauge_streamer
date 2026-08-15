@@ -58,7 +58,8 @@ X-Plane's XPLM API; network threads must never call XPLM.
 
 **Frontend.** Plain HTML/JS/CSS under `web/` — no framework, no build step.
 Bezel layouts live in `web/bezels/<type>.json` (`button`, `rocker`, `knob`,
-`grid`), with optional `labelSize` and `\n` line breaks in labels.
+`grid`), with optional `labelSize`, `\n` line breaks in labels, and `crop` to
+drop unused black margin from a capture.
 
 **Threading invariant.** Capture and XPLM calls stay on the main thread. Encoding
 and HTTP run off-thread. Button presses cross that boundary only via
