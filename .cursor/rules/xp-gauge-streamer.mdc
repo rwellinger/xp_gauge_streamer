@@ -6,8 +6,8 @@ alwaysApply: true
 # xp_gauge_streamer
 
 C++17 X-Plane 12 plugin for **macOS Apple Silicon (arm64) only**. Shown in-sim as
-**Welly's Gauge Streamer**. Captures Laminar GNS430/530, streams MJPEG to a
-browser frontend, and forwards presses back over WebSocket.
+**Welly's Gauge Streamer**. Captures the Laminar GNS430/530 and airliner CDU,
+streams MJPEG to a browser frontend, and forwards presses back over WebSocket.
 
 Same guidance as [CLAUDE.md](../../CLAUDE.md) for Claude Code.
 
@@ -35,7 +35,7 @@ Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
 - **`frame_pipeline`** — Per-device encoder threads (libjpeg-turbo); `publish_frame` / `latest_jpeg`
 - **`http_server`** — civetweb: static `web/`, `/stream/<slug>`, `/devices`, `/control` (no auth)
 - **`command_dispatch`** — Queue presses from network → execute on main thread; whitelist via `command_catalog`
-- **`device_registry`** — GNS table (`slug`, `type`, `command_prefix`); SDK-free `DeviceId`
+- **`device_registry`** — device table (`slug`, `type`, `command_prefix`); SDK-free `DeviceId`
 - **`plugin_ui`** — Dear ImGui settings window
 - **`settings`** — `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
 
