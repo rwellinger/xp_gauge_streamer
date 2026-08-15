@@ -144,6 +144,35 @@ void write_ppm(const unsigned char *pixels, int width, int height)
     log_line("wrote %s (%dx%d)", path.c_str(), width, height);
 }
 
+// An all-black frame has two very different explanations — the unit was simply
+// switched off, or the bridge handed back an empty buffer without complaining.
+// Saying which one it is here saves shipping the .ppm around to find out.
+void report_pixel_content(const unsigned char *pixels, int width, int height)
+{
+    const size_t  count   = static_cast<size_t>(width) * static_cast<size_t>(height) * 3;
+    unsigned char highest = 0;
+    size_t        lit     = 0;
+
+    for (size_t index = 0; index < count; ++index)
+    {
+        if (pixels[index] == 0)
+            continue;
+
+        ++lit;
+        if (pixels[index] > highest)
+            highest = pixels[index];
+    }
+
+    if (lit == 0)
+    {
+        log_line("frame content: every one of %zu bytes is zero — screen off, or the readback is empty", count);
+        return;
+    }
+
+    log_line("frame content: %zu of %zu bytes non-zero, brightest %u — real pixels arrived", lit, count,
+             static_cast<unsigned>(highest));
+}
+
 void start_readback(PixelBufferSlot &slot, const GLint *viewport, int width, int height)
 {
     const size_t needed_bytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 3;
@@ -194,7 +223,10 @@ void consume_ready_slot(PixelBufferSlot &slot, int frame_number)
     }
 
     if (frame_number == DUMP_FRAME)
+    {
+        report_pixel_content(pixels, slot.width, slot.height);
         write_ppm(pixels, slot.width, slot.height);
+    }
 
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
     check_gl("glUnmapBuffer");
