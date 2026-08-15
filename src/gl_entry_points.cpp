@@ -17,11 +17,11 @@
 namespace xp_gauge_streamer
 {
 
-void (*XP_GL_CALL gl_gen_buffers)(GLsizei, GLuint *)                        = nullptr;
-void (*XP_GL_CALL gl_bind_buffer)(GLenum, GLuint)                           = nullptr;
-void (*XP_GL_CALL gl_buffer_data)(GLenum, GLsizeiptr, const void *, GLenum) = nullptr;
-void *(*XP_GL_CALL gl_map_buffer)(GLenum, GLenum)                           = nullptr;
-GLboolean (*XP_GL_CALL gl_unmap_buffer)(GLenum)                             = nullptr;
+void(XP_GL_CALL *gl_gen_buffers)(GLsizei, GLuint *)                        = nullptr;
+void(XP_GL_CALL *gl_bind_buffer)(GLenum, GLuint)                           = nullptr;
+void(XP_GL_CALL *gl_buffer_data)(GLenum, GLsizeiptr, const void *, GLenum) = nullptr;
+void *(XP_GL_CALL *gl_map_buffer)(GLenum, GLenum)                          = nullptr;
+GLboolean(XP_GL_CALL *gl_unmap_buffer)(GLenum)                             = nullptr;
 
 #if defined(__APPLE__)
 

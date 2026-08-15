@@ -26,11 +26,11 @@ namespace xp_gauge_streamer
 #define XP_GL_CALL
 #endif
 
-extern void (*XP_GL_CALL gl_gen_buffers)(GLsizei count, GLuint *names);
-extern void (*XP_GL_CALL gl_bind_buffer)(GLenum target, GLuint name);
-extern void (*XP_GL_CALL gl_buffer_data)(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
-extern void *(*XP_GL_CALL gl_map_buffer)(GLenum target, GLenum access);
-extern GLboolean (*XP_GL_CALL gl_unmap_buffer)(GLenum target);
+extern void(XP_GL_CALL *gl_gen_buffers)(GLsizei count, GLuint *names);
+extern void(XP_GL_CALL *gl_bind_buffer)(GLenum target, GLuint name);
+extern void(XP_GL_CALL *gl_buffer_data)(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
+extern void *(XP_GL_CALL *gl_map_buffer)(GLenum target, GLenum access);
+extern GLboolean(XP_GL_CALL *gl_unmap_buffer)(GLenum target);
 
 // True once all five pointers are usable. Must be called with a current GL
 // context — on Windows the loader returns null without one — which in this
