@@ -71,6 +71,12 @@ set, so it can do more than the panel in that cockpit. A green CDU screen in a
 3D cockpit is a font texture the aircraft draws from the same datarefs, not a
 different device.
 
+Aircraft that bring their own FMC — ZIBO, ToLiss, most payware — compute and
+draw it themselves and bind no avionics device at all. There is no framebuffer
+to read, so they show as absent and no bezel would help. That is the line this
+plugin draws: it serves the devices X-Plane provides, not what an add-on
+renders on its own.
+
 With one stream open, expect the sim to give up roughly 4–5 % of its frame rate.
 The plugin reads the device's framebuffer back six times a second on X-Plane's
 main thread. Cost does not depend on monitor resolution — the device screen is
