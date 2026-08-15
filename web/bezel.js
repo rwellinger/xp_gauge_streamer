@@ -9,6 +9,9 @@
 //   rocker  two keys sharing one body, e.g. RNG − / RNG +
 //   knob    concentric rings, each with an increase and a decrease half, and an
 //           optional press in the centre
+//   grid    a block of equally sized keys in `columns` columns — a CDU's line
+//           selects, function keys and letter pad, which would otherwise be
+//           dozens of hand-placed boxes
 
 const definitions = new Map();
 
@@ -93,6 +96,18 @@ function renderRocker(control, press) {
     return node;
 }
 
+// An entry without a command leaves its cell empty, so a block can skip a
+// position without splitting into two controls.
+function renderGrid(control, press) {
+    const node = document.createElement('div');
+    node.className = 'grid';
+    node.style.gridTemplateColumns = `repeat(${control.columns}, 1fr)`;
+    node.append(...control.keys.map(entry => entry.command
+        ? key('key', entry.label, entry.command, press)
+        : document.createElement('span')));
+    return node;
+}
+
 // Angles run counter-clockwise from "east", the way a unit circle does; the
 // screen's y axis points the other way, hence the minus on every sine.
 const CENTRE_INSET = 30;
@@ -173,6 +188,7 @@ const CONTROL_KINDS = {
     button: renderButton,
     rocker: renderRocker,
     knob: renderKnob,
+    grid: renderGrid,
 };
 
 // ── Bezel ────────────────────────────────────────────────────────────────────
@@ -198,6 +214,13 @@ export function renderBezel(definition, press) {
 
         const node = render(control, press);
         node.classList.add('control');
+
+        // In bezel units like every other measure, so a label keeps its size
+        // relative to its key however large the panel is drawn.
+        if (control.labelSize) {
+            node.style.setProperty('--label-size', control.labelSize);
+        }
+
         place(node, control.box, definition.size);
         bezel.append(node);
     }
@@ -217,14 +240,34 @@ function shape(name, attributes) {
     return node;
 }
 
-function thumbnailShape(control) {
+// Returns the shapes for one control: a grid draws a cell per key, so the CDU
+// reads as a keypad rather than as one empty slab.
+function thumbnailShapes(control) {
     const box = control.box;
-    if (control.kind !== 'knob') {
-        return shape('rect', { x: box.x, y: box.y, width: box.width, height: box.height, rx: 6, class: 'sketch-key' });
+
+    if (control.kind === 'knob') {
+        const radius = box.width / 2;
+        return [shape('circle', { cx: box.x + radius, cy: box.y + radius, r: radius, class: 'sketch-key' })];
     }
 
-    const radius = box.width / 2;
-    return shape('circle', { cx: box.x + radius, cy: box.y + radius, r: radius, class: 'sketch-key' });
+    if (control.kind !== 'grid') {
+        return [shape('rect', { x: box.x, y: box.y, width: box.width, height: box.height, rx: 6, class: 'sketch-key' })];
+    }
+
+    const columns = control.columns;
+    const rows = Math.ceil(control.keys.length / columns);
+    const cellWidth = box.width / columns;
+    const cellHeight = box.height / rows;
+    const inset = Math.min(cellWidth, cellHeight) * 0.12;
+
+    return control.keys.map((entry, index) => entry.command ? shape('rect', {
+        x: box.x + (index % columns) * cellWidth + inset,
+        y: box.y + Math.floor(index / columns) * cellHeight + inset,
+        width: cellWidth - 2 * inset,
+        height: cellHeight - 2 * inset,
+        rx: 3,
+        class: 'sketch-key',
+    }) : null).filter(Boolean);
 }
 
 // The tile's picture of the device is drawn from the same definition as the
@@ -244,7 +287,7 @@ export function renderThumbnail(definition) {
                       x: screen.x, y: screen.y, width: screen.width, height: screen.height, rx: 4,
                       class: 'sketch-screen',
                   }),
-                  ...controls.map(thumbnailShape));
+                  ...controls.flatMap(thumbnailShapes));
 
     return sketch;
 }

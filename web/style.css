@@ -124,6 +124,9 @@ h1 {
 .sketch {
     width: 100%;
     height: auto;
+    /* A portrait device would otherwise make its tile twice as tall as the
+       landscape ones; the viewBox scales the drawing down and centres it. */
+    max-height: 11rem;
 }
 
 .sketch-body {
@@ -181,7 +184,13 @@ button {
     border: 1px solid var(--edge);
     background: var(--key);
     color: var(--text);
-    font: 600 calc(var(--unit) * 18) / 1 system-ui, sans-serif;
+    /* A control may override --label-size when its keys are too small for the
+       default, as on a CDU's letter pad. */
+    font: 600 calc(var(--unit) * var(--label-size, 18)) / 1.15 system-ui, sans-serif;
+    /* Keeps a "\n" in a definition's label as a line break — DEP/ARR and PREV
+       PAGE do not fit a CDU key on one line. */
+    white-space: pre-line;
+    text-align: center;
     cursor: pointer;
     touch-action: manipulation;
 }
@@ -213,6 +222,17 @@ button[data-pressed="true"] {
 
 .rocker .key {
     flex: 1;
+}
+
+/* ── Grid ─────────────────────────────────────────────────────────────────── */
+
+.grid {
+    display: grid;
+    /* In bezel units, so the gaps shrink with the panel instead of swallowing
+       the keys on a small screen. */
+    gap: calc(var(--unit) * 8);
+    width: 100%;
+    height: 100%;
 }
 
 /* ── Knob ─────────────────────────────────────────────────────────────────── */
