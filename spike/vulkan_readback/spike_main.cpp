@@ -59,6 +59,13 @@ constexpr size_t MEASURED_FRAMES = 100;
 constexpr size_t WARMUP_FRAMES   = 10;
 constexpr int    DUMP_FRAME      = 50;
 
+// The unit draws a black screen until the aircraft's avionics are powered, and
+// 100 frames are over in under two seconds — far too fast for anyone to reach
+// for a switch. So the probe watches until real pixels show up and only then
+// starts measuring, giving the tester about half a minute at 60 fps.
+constexpr int WAIT_FRAMES_LIMIT   = 2000;
+constexpr int CONTENT_CHECK_EVERY = 15;
+
 std::vector<XPLMAvionicsID> registrations;
 
 // The first device whose callback fires becomes the subject; later callbacks
@@ -73,6 +80,8 @@ struct Measurement
     // has to become a per-platform setting.
     std::vector<double> samples;
     int                 frames_seen      = 0;
+    int                 frames_waited    = 0;
+    bool                screen_is_live   = false;
     bool                summary_reported = false;
 };
 
@@ -204,6 +213,31 @@ void start_readback(PixelBufferSlot &slot, const GLint *viewport, int width, int
     slot.pending = true;
 }
 
+bool any_pixel_lit(const unsigned char *pixels, size_t count)
+{
+    for (size_t index = 0; index < count; ++index)
+    {
+        if (pixels[index] != 0)
+            return true;
+    }
+    return false;
+}
+
+// While waiting, the frame is only checked for signs of life — and not on every
+// one, since a fully black screen costs a full scan to rule out.
+void watch_for_content(const unsigned char *pixels, const PixelBufferSlot &slot)
+{
+    if (measurement.frames_waited % CONTENT_CHECK_EVERY != 0)
+        return;
+
+    const size_t count = static_cast<size_t>(slot.width) * static_cast<size_t>(slot.height) * 3;
+    if (!any_pixel_lit(pixels, count))
+        return;
+
+    measurement.screen_is_live = true;
+    log_line("%s: screen came alive after %d frames — measuring now", subject_name, measurement.frames_waited);
+}
+
 void consume_ready_slot(PixelBufferSlot &slot, int frame_number)
 {
     if (!slot.pending)
@@ -222,7 +256,11 @@ void consume_ready_slot(PixelBufferSlot &slot, int frame_number)
         return;
     }
 
-    if (frame_number == DUMP_FRAME)
+    if (!measurement.screen_is_live)
+    {
+        watch_for_content(pixels, slot);
+    }
+    else if (frame_number == DUMP_FRAME)
     {
         report_pixel_content(pixels, slot.width, slot.height);
         write_ppm(pixels, slot.width, slot.height);
@@ -291,8 +329,11 @@ void capture_once()
         return;
     }
 
-    if (measurement.frames_seen == 0)
+    if (measurement.frames_seen == 0 && measurement.frames_waited == 0)
+    {
         log_line("%s: viewport %dx%d at origin %d,%d", subject_name, width, height, viewport[0], viewport[1]);
+        log_line("waiting for the screen to light up — switch on battery and avionics now");
+    }
 
     GLint saved_alignment = 4;
     GLint saved_binding   = 0;
@@ -311,6 +352,20 @@ void capture_once()
     glPixelStorei(GL_PACK_ALIGNMENT, saved_alignment);
 
     const auto elapsed = std::chrono::steady_clock::now() - started;
+
+    if (!measurement.screen_is_live)
+    {
+        ++measurement.frames_waited;
+
+        if (measurement.frames_waited == WAIT_FRAMES_LIMIT)
+        {
+            log_line("%s: screen stayed black for %d frames — measuring anyway", subject_name, WAIT_FRAMES_LIMIT);
+            log_line("if the unit was visibly lit in the cockpit, the readback itself is coming back empty");
+            measurement.screen_is_live = true;
+        }
+        return;
+    }
+
     ++measurement.frames_seen;
 
     // Writing 600 KB to disk is not part of what a capture costs, so the frame
