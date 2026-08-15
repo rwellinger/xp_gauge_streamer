@@ -62,6 +62,8 @@ The line selects sit on the screen's own text rows, so `1L` points at the first
 data line rather than at the page title. Presses travel over the WebSocket and
 reach the sim as the unit's own commands.
 
+![The CDU on an iPad: the departure page streaming into a portrait bezel, line select keys level with the rows they belong to](images/ipad-cdu.jpeg)
+
 That bezel serves every aircraft using X-Plane's `CDU739`, not just the 737 —
 the AW139 is the other one tested. An aircraft is free to label the same keys
 differently on its own panel, and to leave some of them out: the AW139 calls
