@@ -208,7 +208,11 @@ lint: $(DEPS)
 	    echo "Then add to PATH: export PATH=\"\$$(brew --prefix llvm)/bin:\$$PATH\""; \
 	    exit 1; }
 	cmake -B build-lint -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -Wno-dev
-	clang-tidy -p build-lint --extra-arg="-isysroot" --extra-arg="$(shell xcrun --show-sdk-path)" src/*.cpp
+	@# The file list comes from the build, not from a glob: src/ holds one
+	@# translation unit per platform for network_info, and the other platform's
+	@# does not compile here. What is built is what gets linted.
+	@python3 -c "import json; print('\n'.join(sorted({e['file'] for e in json.load(open('build-lint/compile_commands.json')) if e['file'].startswith('$(CURDIR)/src/')})))" \
+	    | xargs clang-tidy -p build-lint --extra-arg="-isysroot" --extra-arg="$(shell xcrun --show-sdk-path)"
 
 # ── Sanitize ──────────────────────────────────────────────────────────────────
 # Builds + runs only the SDK-free Catch2 tests under AddressSanitizer +
