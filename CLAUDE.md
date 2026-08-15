@@ -7,8 +7,9 @@ content from [`.cursor/rules/xp-gauge-streamer.mdc`](.cursor/rules/xp-gauge-stre
 
 **xp_gauge_streamer** (shown in-sim as **Welly's Gauge Streamer**) is a C++17
 X-Plane 12 plugin for **macOS Apple Silicon (arm64) only**. It captures the
-default Laminar GNS430/530 display, streams MJPEG to a browser frontend, and
-forwards button/knob presses back into the sim over a WebSocket.
+default Laminar avionics displays — the GNS430/530 and the airliner CDU — streams
+MJPEG to a browser frontend, and forwards button/knob presses back into the sim
+over a WebSocket.
 
 ## Commands
 
@@ -47,14 +48,17 @@ X-Plane's XPLM API; network threads must never call XPLM.
 - **`command_dispatch`** — Queues presses from network threads; a flight loop
   executes them on the main thread. Only whitelisted button names from
   `command_catalog` are accepted.
-- **`device_registry`** — Static table of GNS units (`slug`, `type`,
+- **`device_registry`** — Static table of devices (`slug`, `type`,
   `command_prefix`, enabled flag). SDK-free `DeviceId` so unit tests can link it.
+  The command prefix follows the unit, not the model: `sim/GPS/g430n1_` and
+  `sim/GPS/g430n2_` for the GNS pair, `sim/FMS/` and `sim/FMS2/` for the CDUs.
 - **`plugin_ui`** — Dear ImGui settings window (address, port, device presence).
 - **`settings`** — Reads/writes `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
   so updates do not wipe user config.
 
 **Frontend.** Plain HTML/JS/CSS under `web/` — no framework, no build step.
-Bezel layouts live in `web/bezels/<type>.json` (`button`, `rocker`, `knob`).
+Bezel layouts live in `web/bezels/<type>.json` (`button`, `rocker`, `knob`,
+`grid`), with optional `labelSize` and `\n` line breaks in labels.
 
 **Threading invariant.** Capture and XPLM calls stay on the main thread. Encoding
 and HTTP run off-thread. Button presses cross that boundary only via

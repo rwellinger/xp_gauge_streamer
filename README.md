@@ -3,13 +3,14 @@
 ![Build](https://github.com/rwellinger/xp_gauge_streamer/actions/workflows/build.yml/badge.svg)
 
 Native X-Plane 12 plugin for **macOS (Apple Silicon)** that captures the default
-Laminar GNS430/530 display and streams it to a web frontend, where it can be
-operated by click or touch instead of via the cockpit popout.
+Laminar avionics displays — the GNS430/530 and the airliner CDU — and streams
+them to a web frontend, where they can be operated by click or touch instead of
+via the cockpit popout.
 
 ![The GNS 530 on an iPad: the streamed screen in a bezel drawn by the frontend](images/ipad-gns530.jpeg)
 
-Status: feature complete — the GNS screen streams to the browser and its keys
-operate the unit in the sim.
+Status: feature complete — the screens stream to the browser and their keys
+operate the units in the sim.
 
 ## Contents
 
@@ -32,34 +33,46 @@ operate the unit in the sim.
 
 ## Why Gauge Streamer?
 
-- **Operate the GNS from a tablet.** Click and touch the bezel in the browser instead of hunting for the cockpit popout.
+- **Operate the unit from a tablet.** Click and touch the bezel in the browser instead of hunting for the cockpit popout. A CDU in particular is a thing you type on, which a tablet does better than a popout window.
 - **Capture only while someone watches.** With no open stream, the plugin costs X-Plane nothing.
-- **Bezel is drawn, not captured.** X-Plane hands out the GNS screen only — the frontend draws the frame, keys, and knobs around it.
+- **Bezel is drawn, not captured.** X-Plane hands out the screen only — the frontend draws the frame, keys, and knobs around it.
 - **Reconnects on its own.** After an X-Plane restart or a WLAN dropout, the page reconnects; a dead frontend that looks alive is worse in flight than a visible error.
 - **Extensible by data.** A new device type is a bezel JSON plus registry and whitelist entries — no renderer change.
 
 ## Watching the stream
 
 `/` is the selection page: one tile per unit, with a sketch of the device, its
-name, and whether the loaded aircraft has it. It streams nothing — a panel with
+name, and whether the loaded aircraft has it. It streams nothing — a Cessna with
 a GNS530 and a second GNS430 shows `gns530_1` and `gns430_2` as present and the
-other two as absent. Each unit has its own page at `/device/<slug>`, with the
-slugs `gns430_1`, `gns430_2`, `gns530_1`, and `gns530_2`, so a tablet can
-bookmark just its own screen.
+rest as absent, a 737 shows its two CDUs and nothing else. Each unit has its own
+page at `/device/<slug>`, with the slugs `gns430_1`, `gns430_2`, `gns530_1`,
+`gns530_2`, `cdu739_1` and `cdu739_2`, so a tablet can bookmark just its own
+screen.
 
 The device page draws the bezel around the stream, laid out like the unit in the
-cockpit: COM and VLOC volume with their push functions on the left, the C and V
-frequency flip-flops beside them, CDI, OBS, MSG, FPL, VNAV (530 only) and PROC in
-a row under the screen, RNG, D→, MENU, CLR and ENT down the right, and the two
-large dual knobs in the bottom corners — COM/VLOC frequency on the left, chapter
-and page with CRSR on the right. Presses travel over the WebSocket and reach the
-sim as the unit's own commands.
+cockpit. The GNS units are landscape: COM and VLOC volume with their push
+functions on the left, the C and V frequency flip-flops beside them, CDI, OBS,
+MSG, FPL, VNAV (530 only) and PROC in a row under the screen, RNG, D→, MENU, CLR
+and ENT down the right, and the two large dual knobs in the bottom corners —
+COM/VLOC frequency on the left, chapter and page with CRSR on the right.
+
+The CDU is portrait, as the unit is: the screen up top with six line selects down
+each side, the function keys below it, then the number pad beside the letters.
+The line selects sit on the screen's own text rows, so `1L` points at the first
+data line rather than at the page title. Presses travel over the WebSocket and
+reach the sim as the unit's own commands.
 
 With one stream open, expect the sim to give up roughly 4–5 % of its frame rate.
 The plugin reads the device's framebuffer back six times a second on X-Plane's
 main thread. Cost does not depend on monitor resolution — the device screen is
 read at its own fixed size — but a second open stream adds its own share. Close
-the tab and the cost goes away.
+the tab and the cost goes away. A CDU screen is the cheaper one: at 300×330 it
+is about a third of a GNS530's pixels.
+
+**A black CDU screen is usually an electrical problem, not a streaming one.** The
+unit only draws when the aircraft has power, so on a cold and dark 737 the stream
+runs fine and shows nothing until the GPU or APU is on. `/devices` reporting
+`present: true` says the aircraft has the unit, not that it is lit.
 
 ## Endpoints
 
@@ -71,10 +84,13 @@ the tab and the cost goes away.
 | `/devices`       | JSON: slug, type, name, and whether the aircraft has it|
 | `/control`       | WebSocket: `{"device": "gns530_1", "button": "fpl"}`   |
 
-Button names follow X-Plane's `sim/GPS/g430n*_` commands — `fpl`, `menu`,
-`clr`, `ent`, `cursor`, `zoom_in`, `page_up`, … Only whitelisted names are
-accepted; anything else is dropped and logged. Presses are queued and executed
-on X-Plane's main thread, never from the network thread.
+Button names are the suffix of the unit's own command family: `sim/GPS/g430n*_`
+for the GNS units — `fpl`, `menu`, `clr`, `ent`, `cursor`, `zoom_in`, `page_up`,
+… — and `sim/FMS/` or `sim/FMS2/` for the captain's and first officer's CDU —
+`ls_1l`, `exec`, `dep_arr`, `key_A`, `key_7`, … Note the CDU's letter keys are
+upper case: `key_A`, not `key_a`. Only whitelisted names are accepted; anything
+else is dropped and logged. Presses are queued and executed on X-Plane's main
+thread, never from the network thread.
 
 ## Adding a device type
 
@@ -107,8 +123,8 @@ brings its own likeness along.
 
 **The server has no authentication.** It binds to `0.0.0.0` on purpose — a
 tablet as a second screen is the point of this plugin — so anyone on the same
-network can watch the GNS and operate it. Use it on a network you trust, or
-restrict the server to this machine:
+network can watch your avionics and operate them. Use it on a network you trust,
+or restrict the server to this machine:
 
 ```
 # <X-Plane>/Output/xp_gauge_streamer/settings.cfg

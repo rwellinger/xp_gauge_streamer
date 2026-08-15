@@ -1,5 +1,5 @@
 /*
- * xp_gauge_streamer - GNS430/530 display streamer for X-Plane 12
+ * xp_gauge_streamer - avionics display streamer for X-Plane 12
  * Copyright (c) 2026 thWelly
  *
  * Licensed under the MIT License. See the LICENSE file in the
@@ -260,7 +260,7 @@ void draw_port_setting()
 void draw_security_note()
 {
     ImGui::TextColored(ImVec4(0.9f, 0.7f, 0.3f, 1.0f), "No password protects this stream.");
-    ImGui::TextWrapped("Everyone on this network can watch the GNS and operate it. "
+    ImGui::TextWrapped("Everyone on this network can watch your avionics and operate them. "
                        "Set bind_address to 127.0.0.1 in the settings file to keep it on this machine.");
 }
 

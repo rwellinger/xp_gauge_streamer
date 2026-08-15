@@ -1,5 +1,5 @@
 /*
- * xp_gauge_streamer - GNS430/530 display streamer for X-Plane 12
+ * xp_gauge_streamer - avionics display streamer for X-Plane 12
  * Copyright (c) 2026 thWelly
  *
  * Licensed under the MIT License. See the LICENSE file in the
@@ -32,7 +32,7 @@ namespace
 constexpr char PLUGIN_NAME[]      = "Welly's Gauge Streamer";
 constexpr char PLUGIN_SIGNATURE[] = "ch.thwelly.xp_gauge_streamer";
 constexpr char PLUGIN_DESCRIPTION[] =
-    "Streams the GNS430/530 display to a web frontend and forwards clicks back into the sim.";
+    "Streams the GNS430/530 and airliner CDU displays to a web frontend and forwards clicks back into the sim.";
 
 // X-Plane's plugin API hands out fixed 256-byte buffers for name/signature/description.
 constexpr size_t XPLM_STRING_BUFFER_SIZE = 256;

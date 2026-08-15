@@ -1,5 +1,5 @@
 /*
- * xp_gauge_streamer - GNS430/530 display streamer for X-Plane 12
+ * xp_gauge_streamer - avionics display streamer for X-Plane 12
  * Copyright (c) 2026 thWelly
  *
  * Licensed under the MIT License. See the LICENSE file in the
