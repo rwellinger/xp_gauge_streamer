@@ -74,11 +74,27 @@ function attachPress(key, command, press) {
     });
 }
 
-function key(className, label, command, press) {
+// Which physical key reaches this one. A caption of a single character stands
+// for itself, so a whole letter pad needs no annotation; anything else says so
+// with `shortcut`, using the name the browser reports (" ", "Backspace", …).
+// A definition that wants no keyboard at all simply names none.
+function shortcutFor(entry) {
+    if (entry.shortcut) {
+        return entry.shortcut.toLowerCase();
+    }
+    return entry.label && [...entry.label].length === 1 ? entry.label.toLowerCase() : null;
+}
+
+function key(className, label, command, press, shortcut) {
     const node = document.createElement('button');
     node.type = 'button';
     node.className = className;
     node.textContent = label;
+
+    if (shortcut) {
+        node.dataset.shortcut = shortcut;
+    }
+
     attachPress(node, command, press);
     return node;
 }
@@ -86,13 +102,14 @@ function key(className, label, command, press) {
 // ── Control kinds ────────────────────────────────────────────────────────────
 
 function renderButton(control, press) {
-    return key('key', control.label, control.command, press);
+    return key('key', control.label, control.command, press, shortcutFor(control));
 }
 
 function renderRocker(control, press) {
     const node = document.createElement('div');
     node.className = `rocker ${control.orientation === 'vertical' ? 'vertical' : 'horizontal'}`;
-    node.append(...control.segments.map(segment => key('key', segment.label, segment.command, press)));
+    node.append(...control.segments.map(segment =>
+        key('key', segment.label, segment.command, press, shortcutFor(segment))));
     return node;
 }
 
@@ -103,7 +120,7 @@ function renderGrid(control, press) {
     node.className = 'grid';
     node.style.gridTemplateColumns = `repeat(${control.columns}, 1fr)`;
     node.append(...control.keys.map(entry => entry.command
-        ? key('key', entry.label, entry.command, press)
+        ? key('key', entry.label, entry.command, press, shortcutFor(entry))
         : document.createElement('span')));
     return node;
 }
@@ -190,6 +207,36 @@ const CONTROL_KINDS = {
     knob: renderKnob,
     grid: renderGrid,
 };
+
+// ── Keyboard ─────────────────────────────────────────────────────────────────
+
+// Long enough to see which key answered, short enough not to lag fast typing.
+const KEY_FLASH_MS = 120;
+
+// A CDU is a thing you type on, so where a keyboard exists it should drive the
+// keys. Which physical key belongs to which one is the definition's business —
+// every key carries its own, and this only looks for a match. A device that
+// names none simply has no keyboard.
+export function attachKeyboard(bezel) {
+    window.addEventListener('keydown', event => {
+        // Leave the browser's own shortcuts alone.
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+            return;
+        }
+
+        const target = bezel.querySelector(`[data-shortcut="${CSS.escape(event.key.toLowerCase())}"]`);
+        if (!target) {
+            return;
+        }
+
+        event.preventDefault();
+        // The same path a click takes, so a typed press is nothing special.
+        target.click();
+
+        target.dataset.pressed = 'true';
+        setTimeout(() => delete target.dataset.pressed, KEY_FLASH_MS);
+    });
+}
 
 // ── Bezel ────────────────────────────────────────────────────────────────────
 
