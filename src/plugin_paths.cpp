@@ -55,7 +55,12 @@ std::string settings_file_path()
     std::error_code failure;
     std::filesystem::create_directories(directory, failure);
     if (failure)
-        log_format("could not create %s: %s", directory.c_str(), failure.message().c_str());
+    {
+        // Going through string() rather than the path's own c_str(): on Windows
+        // that one is const wchar_t*, which a %s would read as bytes.
+        const std::string directory_text = directory.string();
+        log_format("could not create %s: %s", directory_text.c_str(), failure.message().c_str());
+    }
 
     return (directory / SETTINGS_FILE_NAME).string();
 }
