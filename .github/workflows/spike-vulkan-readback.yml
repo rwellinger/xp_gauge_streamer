@@ -1,20 +1,16 @@
-# Throwaway workflow for the issue #25 spike: it exists to hand a tester a
-# Windows and a Linux .xpl without owning either machine, and gets deleted
-# together with spike/ once the Go/No-Go call is made.
+# Workflow for the issue #25 spike: it hands a tester a Windows and a Linux
+# .xpl without owning either machine. Windows answered Go; Linux is still
+# untested, which is the reason this and spike/ are still here.
 #
-# It triggers on pushes to the spike branch rather than on demand, because
-# workflow_dispatch only offers workflows that already live on the default
-# branch — and this one deliberately never gets there.
+# Manual, plus pushes to a spike branch. Now that it lives on the default
+# branch, workflow_dispatch can offer it — which is how a Linux tester gets an
+# artifact without a build environment.
 name: Spike — Vulkan readback
 
 on:
   push:
     branches:
       - 'spike/**'
-  # Also on the pull request, so the three builds show up as checks on PR #51
-  # instead of only as a separate run nobody thinks to look for.
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
