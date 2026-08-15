@@ -22,12 +22,20 @@ namespace
 constexpr char COMMAND_PREFIX_UNIT_1[] = "sim/GPS/g430n1_";
 constexpr char COMMAND_PREFIX_UNIT_2[] = "sim/GPS/g430n2_";
 
+// The airliner CDU follows the same rule with its own family: the number is the
+// unit (captain = FMS, first officer = FMS2), not the model. Both families offer
+// the identical 82 suffixes in the installed X-Plane 12.
+constexpr char COMMAND_PREFIX_FMS_1[] = "sim/FMS/";
+constexpr char COMMAND_PREFIX_FMS_2[] = "sim/FMS2/";
+
 // The type names the bezel definition the frontend loads (web/bezels/<type>.json)
 // and the button set command_catalog accepts.
 constexpr char TYPE_GNS430[] = "gns430";
 constexpr char TYPE_GNS530[] = "gns530";
+constexpr char TYPE_CDU739[] = "cdu739";
 
-// Values match XPLMDeviceID: GNS430_1 = 0, GNS430_2 = 1, GNS530_1 = 2, GNS530_2 = 3.
+// Values match XPLMDeviceID: GNS430_1 = 0, GNS430_2 = 1, GNS530_1 = 2,
+// GNS530_2 = 3, CDU739_1 = 4, CDU739_2 = 5.
 std::vector<DeviceDescriptor> &device_table()
 {
     static std::vector<DeviceDescriptor> table = {
@@ -35,6 +43,8 @@ std::vector<DeviceDescriptor> &device_table()
         {1, "gns430_2", TYPE_GNS430, "GNS 430 Copilot", COMMAND_PREFIX_UNIT_2, true},
         {2, "gns530_1", TYPE_GNS530, "GNS 530 Pilot", COMMAND_PREFIX_UNIT_1, true},
         {3, "gns530_2", TYPE_GNS530, "GNS 530 Copilot", COMMAND_PREFIX_UNIT_2, true},
+        {4, "cdu739_1", TYPE_CDU739, "CDU Captain", COMMAND_PREFIX_FMS_1, true},
+        {5, "cdu739_2", TYPE_CDU739, "CDU First Officer", COMMAND_PREFIX_FMS_2, true},
     };
     return table;
 }
