@@ -39,6 +39,15 @@ constexpr float WINDOW_HEIGHT = 430.0f;
 // The URL is the reason this window exists — it gets its own oversized line.
 constexpr float URL_FONT_SCALE = 1.6f;
 
+// ImGui carries a clipboard implementation for macOS and Win32 and falls back
+// to a process-local buffer everywhere else, where copying would only look
+// like it worked.
+#if defined(__linux__)
+constexpr bool CLIPBOARD_IS_REAL = false;
+#else
+constexpr bool CLIPBOARD_IS_REAL = true;
+#endif
+
 // The default ImGui font only carries glyphs up to U+00FF, so window text stays
 // within Latin-1 — an em dash would render as a replacement character.
 constexpr char PRODUCT_NAME[] = "Welly's Gauge Streamer";
@@ -194,10 +203,16 @@ void draw_address()
     ImGui::TextUnformatted(url.c_str());
     ImGui::SetWindowFontScale(1.0f);
 
-    if (ImGui::Button("Copy"))
-        ImGui::SetClipboardText(url.c_str());
+    // Without a real clipboard the button would report success and paste
+    // nothing, so it is simply absent. The URL stands above in 1.6x type,
+    // which is what it is there for.
+    if (CLIPBOARD_IS_REAL)
+    {
+        if (ImGui::Button("Copy"))
+            ImGui::SetClipboardText(url.c_str());
 
-    ImGui::SameLine();
+        ImGui::SameLine();
+    }
     ImGui::TextDisabled("on this machine: http://localhost:%d/", current_settings().port);
 }
 

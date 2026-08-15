@@ -6,7 +6,7 @@ content from [`.cursor/rules/xp-gauge-streamer.mdc`](.cursor/rules/xp-gauge-stre
 ## Project Overview
 
 **xp_gauge_streamer** (shown in-sim as **Welly's Gauge Streamer**) is a C++17
-X-Plane 12 plugin for **macOS Apple Silicon (arm64) only**. It captures the
+X-Plane 12 plugin for **macOS (arm64 only), Windows x64 and Linux x64**. It captures the
 default Laminar avionics displays — the GNS430/530 and the airliner CDU — streams
 MJPEG to a browser frontend, and forwards button/knob presses back into the sim
 over a WebSocket.
@@ -14,10 +14,10 @@ over a WebSocket.
 ## Commands
 
 ```bash
-make setup     # Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui; install libjpeg-turbo
+make setup     # Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui, libjpeg-turbo
 make build     # Configure + compile → build/xp_gauge_streamer.xpl
 make test      # Run the Catch2 unit tests
-make install   # Code-sign and copy plugin, web/ and default settings into X-Plane
+make install   # Copy plugin, web/ and default settings into X-Plane (code-signs on macOS)
 make format    # clang-format over src/
 make lint      # clang-tidy (bugprone-* and performance-* are errors)
 make sanitize  # Build + run unit tests under ASan + UBSan in build-sanitize/
@@ -68,10 +68,15 @@ and HTTP run off-thread. Button presses cross that boundary only via
 
 ## Build Details
 
-- **CMake 3.21+**, C++17, macOS 12.0+, **arm64 only** (no Universal Binary)
-- Output is `build/xp_gauge_streamer.xpl`
+- **CMake 3.21+**, C++17. macOS 12.0+ **arm64 only** — no Universal Binary, so
+  Intel Macs cannot load the plugin. Windows 10+ x64 (MSVC 2022), Linux x64 (GCC 11+).
+- Output is `build/xp_gauge_streamer.xpl` (`build/Release/` on Windows)
 - `sdk/` and `vendor/` are populated by `make setup`, not committed
-- libjpeg-turbo is linked **statically** so the `.xpl` is self-contained
+- libjpeg-turbo is built from vendored source via ExternalProject and linked
+  **statically** so the `.xpl` is self-contained. Its own CMakeLists refuses
+  `add_subdirectory`. SIMD needs NASM on x64; Apple Silicon uses NEON.
+- **Only macOS is used in anger.** Windows was verified in a cloud VM without a
+  home network; Linux is best effort — CI proves it compiles, nothing more.
 - The `.xpl` is intentionally not ASan-instrumented — use Instruments.app against
   the running X-Plane process for in-sim memory analysis
 
@@ -98,3 +103,8 @@ applies to every change, now and in the future:
   needs — match the existing codebase style.
 - **Boundaries only for validation**: trust internal code; validate at the edges (user
   input, external APIs, file parsing).
+- **Platform differences live in their own translation units or in a single leaf
+  seam — never in domain code.** `opengl.hpp` is the only place that includes a GL
+  header, `gl_entry_points` the only place that resolves them, and `network_info`
+  is two files behind one header chosen by CMake. This is the rule that keeps the
+  port from rotting: a new `#ifdef` in a module that does real work is a defect.
