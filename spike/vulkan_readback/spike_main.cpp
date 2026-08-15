@@ -20,6 +20,7 @@
 
 #include <XPLM/XPLMDisplay.h>
 #include <XPLM/XPLMPlugin.h>
+#include <XPLM/XPLMProcessing.h>
 #include <XPLM/XPLMUtilities.h>
 
 #include <algorithm>
@@ -66,6 +67,12 @@ constexpr int    DUMP_FRAME      = 50;
 constexpr int WAIT_FRAMES_LIMIT   = 2000;
 constexpr int CONTENT_CHECK_EVERY = 15;
 
+// The plugin captures six times a second, not once per rendered frame. Reading
+// every frame leaves the transfer barely 16 ms to finish; at the real rate it
+// has 166 ms, which may be the whole difference between a stall and a cheap
+// copy. So both are measured, back to back, and the log shows the pair.
+constexpr double PLUGIN_CAPTURES_PER_SECOND = 6.0;
+
 std::vector<XPLMAvionicsID> registrations;
 
 // The first device whose callback fires becomes the subject; later callbacks
@@ -82,6 +89,8 @@ struct Measurement
     int                 frames_seen      = 0;
     int                 frames_waited    = 0;
     bool                screen_is_live   = false;
+    bool                rate_limited     = false;
+    float               last_capture_at  = 0.0F;
     bool                summary_reported = false;
 };
 
@@ -280,8 +289,6 @@ double percentile(const std::vector<double> &sorted, double fraction)
 
 void report_summary()
 {
-    measurement.summary_reported = true;
-
     std::vector<double> sorted = measurement.samples;
     std::sort(sorted.begin(), sorted.end());
 
@@ -289,9 +296,11 @@ void report_summary()
     for (double sample : sorted)
         total += sample;
 
-    log_line("%s: %zu frames, median %.1f us, average %.1f us", subject_name, sorted.size(), percentile(sorted, 0.5),
-             total / static_cast<double>(sorted.size()));
-    log_line("%s: fastest %.1f us, p90 %.1f us, p99 %.1f us, slowest %.1f us", subject_name, sorted.front(),
+    const char *pace = measurement.rate_limited ? "at 6/s (the plugin's rate)" : "every frame";
+
+    log_line("%s %s: %zu captures, median %.1f us, average %.1f us", subject_name, pace, sorted.size(),
+             percentile(sorted, 0.5), total / static_cast<double>(sorted.size()));
+    log_line("%s %s: fastest %.1f us, p90 %.1f us, p99 %.1f us, slowest %.1f us", subject_name, pace, sorted.front(),
              percentile(sorted, 0.9), percentile(sorted, 0.99), sorted.back());
 
     // The opening frames pay for buffer allocation and the first map, which is
@@ -301,8 +310,20 @@ void report_summary()
     for (size_t index = 0; index < warmup; ++index)
         warmup_total += measurement.samples[index];
 
-    log_line("%s: first %zu frames averaged %.1f us", subject_name, warmup, warmup_total / static_cast<double>(warmup));
-    log_line("done — copy Log.txt and spike25_frame.ppm out of the X-Plane folder");
+    log_line("%s %s: first %zu captures averaged %.1f us", subject_name, pace, warmup,
+             warmup_total / static_cast<double>(warmup));
+
+    if (measurement.rate_limited)
+    {
+        measurement.summary_reported = true;
+        log_line("done — copy Log.txt and spike25_frame.ppm out of the X-Plane folder");
+        return;
+    }
+
+    // Second pass at the rate the plugin actually uses. Takes about 17 seconds.
+    measurement.rate_limited = true;
+    measurement.samples.clear();
+    log_line("now measuring again at 6 captures per second — keep the screen lit for ~20 seconds");
 }
 
 void measure_frame(double micros)
@@ -374,6 +395,18 @@ void capture_once()
         measure_frame(std::chrono::duration<double, std::micro>(elapsed).count());
 }
 
+bool capture_is_due()
+{
+    const float now      = XPLMGetElapsedTime();
+    const float interval = 1.0F / static_cast<float>(PLUGIN_CAPTURES_PER_SECOND);
+
+    if (now - measurement.last_capture_at < interval)
+        return false;
+
+    measurement.last_capture_at = now;
+    return true;
+}
+
 int draw_after(XPLMDeviceID device_id, int /*is_before*/, void *refcon)
 {
     if (measurement.summary_reported)
@@ -394,9 +427,13 @@ int draw_after(XPLMDeviceID device_id, int /*is_before*/, void *refcon)
         log_line("GL entry points resolved (%s)", gl_entry_point_source());
     }
 
-    if (device_id == subject_device)
-        capture_once();
+    if (device_id != subject_device)
+        return 1;
 
+    if (measurement.rate_limited && !capture_is_due())
+        return 1;
+
+    capture_once();
     return 1;
 }
 
