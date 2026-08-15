@@ -22,8 +22,9 @@ on:
       - 'v*'
 
 jobs:
-  # Runs on macOS rather than Linux (unlike xp_pilot): this plugin links the
-  # macOS XPLM stub frameworks, so CMake refuses to configure elsewhere.
+  # clang-tidy runs once, on the canonical platform. It could now run anywhere —
+  # the build configures on all three — but a second opinion from a second
+  # compiler is not worth three times the lint time.
   lint:
     runs-on: macos-latest
     steps:
@@ -33,6 +34,16 @@ jobs:
         run: |
           brew install llvm
           echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+
+
+      - name: Cache SDK and vendored dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            sdk
+            vendor
+          # The Makefile holds every dependency version, so it is the key.
+          key: deps-${{ runner.os }}-${{ hashFiles('Makefile') }}
 
       - name: Setup dependencies
         run: make setup
@@ -48,6 +59,16 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
+
+
+      - name: Cache SDK and vendored dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            sdk
+            vendor
+          # The Makefile holds every dependency version, so it is the key.
+          key: deps-${{ runner.os }}-${{ hashFiles('Makefile') }}
 
       - name: Setup dependencies
         run: make setup
@@ -80,6 +101,16 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update -q && sudo apt-get install -y libgl-dev nasm
 
+
+      - name: Cache SDK and vendored dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            sdk
+            vendor
+          # The Makefile holds every dependency version, so it is the key.
+          key: deps-${{ runner.os }}-${{ hashFiles('Makefile') }}
+
       - name: Setup dependencies
         run: make setup
 
@@ -110,6 +141,16 @@ jobs:
       - name: Install make and nasm
         run: choco install make nasm --no-progress -y
 
+
+      - name: Cache SDK and vendored dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            sdk
+            vendor
+          # The Makefile holds every dependency version, so it is the key.
+          key: deps-${{ runner.os }}-${{ hashFiles('Makefile') }}
+
       - name: Setup dependencies
         shell: bash
         run: make setup
@@ -134,23 +175,40 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [lint, build-macos]
-    runs-on: macos-latest
+    needs: [lint, build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v5
 
-      - name: Download macOS artifact
+      - name: Download platform artifacts
         uses: actions/download-artifact@v8
         with:
-          name: xp_gauge_streamer-macos
-          path: dist/macos
+          path: dist
+          pattern: xp_gauge_streamer-*
 
+      # X-Plane's fat plugin layout: one folder holding a binary per platform,
+      # so a single ZIP serves everyone.
       - name: Build ZIP
         run: |
-          mkdir -p dist/xp_gauge_streamer/mac_x64
-          cp dist/macos/xp_gauge_streamer.xpl dist/xp_gauge_streamer/mac_x64/xp_gauge_streamer.xpl
+          set -euo pipefail
+
+          # A missing artifact must stop the release rather than publish a
+          # two-thirds ZIP that looks complete to whoever downloads it.
+          for pair in mac_x64:macos lin_x64:linux win_x64:windows; do
+            folder="${pair%%:*}"
+            binary="dist/xp_gauge_streamer-${pair##*:}/xp_gauge_streamer.xpl"
+
+            if [ ! -f "$binary" ]; then
+              echo "::error::no binary for $folder — refusing to publish an incomplete release"
+              exit 1
+            fi
+
+            mkdir -p "dist/xp_gauge_streamer/$folder"
+            cp "$binary" "dist/xp_gauge_streamer/$folder/xp_gauge_streamer.xpl"
+          done
+
           cp -R web dist/xp_gauge_streamer/web
           cp -R config dist/xp_gauge_streamer/config
           cd dist && zip -r xp_gauge_streamer.zip xp_gauge_streamer/
@@ -160,3 +218,15 @@ jobs:
         with:
           files: dist/xp_gauge_streamer.zip
           generate_release_notes: true
+          # Stated on every release rather than in the README alone: whoever
+          # downloads this has to know which binary was flown and which was
+          # merely compiled.
+          body: |
+            Unzip into `<X-Plane 12>/Resources/plugins/` — the archive carries a
+            binary for each platform in one folder.
+
+            | Platform | State |
+            |---|---|
+            | macOS (Apple Silicon) | flown by the developer; Intel Macs are not supported |
+            | Windows x64 | capture verified in a cloud VM; LAN access from a tablet is not |
+            | Linux x64 | **best effort** — compiled by CI, never loaded in the sim |
