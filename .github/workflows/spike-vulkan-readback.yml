@@ -1,0 +1,62 @@
+# Throwaway workflow for the issue #25 spike. Manual only — it exists to hand a
+# tester a Windows and a Linux .xpl without owning either machine, and gets
+# deleted together with spike/ once the Go/No-Go call is made.
+name: Spike — Vulkan readback
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win_x64
+          - os: ubuntu-latest
+            platform: lin_x64
+          - os: macos-latest
+            platform: mac_x64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # The spike needs the SDK headers and, on Windows, the stub libraries —
+      # not the plugin's other dependencies, so 'make setup' would be overkill
+      # and does not run on the Windows runner anyway.
+      - name: Download X-Plane SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip" -o sdk.zip
+          unzip -q sdk.zip -d sdk_extracted
+          mkdir -p sdk/XPLM sdk/XPWidgets sdk/Libraries/Mac sdk/Libraries/Win
+          find sdk_extracted -path "*/CHeaders/XPLM/*.h"    -exec cp {} sdk/XPLM/ \;
+          find sdk_extracted -path "*/CHeaders/Widgets/*.h" -exec cp {} sdk/XPWidgets/ \;
+          find sdk_extracted -path "*/Libraries/Win/*.lib"  -exec cp {} sdk/Libraries/Win/ \;
+          find sdk_extracted -maxdepth 4 -name "*.framework" -exec cp -R {} sdk/Libraries/Mac/ \; || true
+
+      - name: Install OpenGL headers
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev
+
+      - name: Build
+        run: |
+          cmake -S spike/vulkan_readback -B build-spike -DCMAKE_BUILD_TYPE=Release -Wno-dev
+          cmake --build build-spike --config Release
+
+      - name: Collect artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/${{ matrix.platform }}
+          find build-spike -name "*.xpl" -exec cp {} out/${{ matrix.platform }}/ \;
+          ls -l out/${{ matrix.platform }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike25-${{ matrix.platform }}
+          path: out/

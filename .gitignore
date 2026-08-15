@@ -2,6 +2,7 @@
 build/
 build-lint/
 build-sanitize/
+build-spike/
 
 # X-Plane SDK headers (downloaded by 'make setup')
 sdk/
