@@ -62,6 +62,15 @@ The line selects sit on the screen's own text rows, so `1L` points at the first
 data line rather than at the page title. Presses travel over the WebSocket and
 reach the sim as the unit's own commands.
 
+That bezel serves every aircraft using X-Plane's `CDU739`, not just the 737 —
+the AW139 is the other one tested. An aircraft is free to label the same keys
+differently on its own panel, and to leave some of them out: the AW139 calls
+`NAV RAD` "RADIO", has no CLB, CRZ, DES, HOLD or FIX at all, and its PERF, PROG
+and MENU keys are labelled but wired to nothing. The bezel here carries the full
+set, so it can do more than the panel in that cockpit. A green CDU screen in a
+3D cockpit is a font texture the aircraft draws from the same datarefs, not a
+different device.
+
 With one stream open, expect the sim to give up roughly 4–5 % of its frame rate.
 The plugin reads the device's framebuffer back six times a second on X-Plane's
 main thread. Cost does not depend on monitor resolution — the device screen is
