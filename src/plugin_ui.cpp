@@ -12,6 +12,7 @@
 #include "device_registry.hpp"
 #include "http_server.hpp"
 #include "network_info.hpp"
+#include "opengl.hpp"
 #include "settings.hpp"
 
 #include <XPLM/XPLMDisplay.h>
@@ -19,8 +20,6 @@
 #include <XPLM/XPLMMenus.h>
 #include <XPLM/XPLMProcessing.h>
 #include <XPLM/XPLMUtilities.h>
-
-#include <OpenGL/gl.h>
 
 #include <backends/imgui_impl_opengl2.h>
 #include <imgui.h>
