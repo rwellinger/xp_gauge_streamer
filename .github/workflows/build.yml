@@ -3,6 +3,20 @@ name: Build
 on:
   pull_request:
     branches: [main]
+    # A pull request touching nothing but prose cannot break a compile, so it
+    # does not pay for one. The filter applies only when *every* changed file
+    # matches — a commit that edits the README and a source file still builds.
+    #
+    # Careful if main ever becomes a protected branch with required checks: a
+    # skipped workflow reports nothing, and a required check that never
+    # reports blocks the merge for good. The way out then is a job that always
+    # runs and decides for itself whether to do any work.
+    paths-ignore:
+      - '**.md'
+      - 'images/**'
+      - '.cursor/**'
+      - 'LICENSE'
+  # Tags are never filtered: a release builds whatever it is cut from.
   push:
     tags:
       - 'v*'
