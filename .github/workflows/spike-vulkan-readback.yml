@@ -1,9 +1,16 @@
-# Throwaway workflow for the issue #25 spike. Manual only — it exists to hand a
-# tester a Windows and a Linux .xpl without owning either machine, and gets
-# deleted together with spike/ once the Go/No-Go call is made.
+# Throwaway workflow for the issue #25 spike: it exists to hand a tester a
+# Windows and a Linux .xpl without owning either machine, and gets deleted
+# together with spike/ once the Go/No-Go call is made.
+#
+# It triggers on pushes to the spike branch rather than on demand, because
+# workflow_dispatch only offers workflows that already live on the default
+# branch — and this one deliberately never gets there.
 name: Spike — Vulkan readback
 
 on:
+  push:
+    branches:
+      - 'spike/**'
   workflow_dispatch:
 
 jobs:
