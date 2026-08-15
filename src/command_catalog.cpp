@@ -29,6 +29,15 @@ struct ButtonSet
 // plugin replaces. The command family is shared by both models, the keys are
 // not — so the whitelist is per device type, not global. A type with a
 // different family (G1000, MCP) brings its own set here.
+//
+// The CDU's sim/FMS*/ family follows the same rule, with two things to watch:
+// its CDU_popup and CDU_popout are excluded for the reason above, and the
+// letter keys are spelled key_A to key_Z — upper case is the command's name,
+// and a lower-case one is silently rejected here.
+//
+// The list is the full family, not what one bezel draws: keys without a 737
+// counterpart stay in so a later Airbus or AW139 layout needs a JSON file and
+// no code.
 const std::vector<ButtonSet> &button_sets()
 {
     static const std::vector<ButtonSet> sets = []
@@ -44,7 +53,21 @@ const std::vector<ButtonSet> &button_sets()
         std::vector<std::string_view> gns530 = gns430;
         gns530.push_back("vnav");
 
-        return std::vector<ButtonSet>{{"gns430", std::move(gns430)}, {"gns530", std::move(gns530)}};
+        std::vector<std::string_view> cdu739 = {
+            "ls_1l",      "ls_2l",     "ls_3l",     "ls_4l",     "ls_5l",    "ls_6l",      "ls_1r",     "ls_2r",
+            "ls_3r",      "ls_4r",     "ls_5r",     "ls_6r",     "key_A",    "key_B",      "key_C",     "key_D",
+            "key_E",      "key_F",     "key_G",     "key_H",     "key_I",    "key_J",      "key_K",     "key_L",
+            "key_M",      "key_N",     "key_O",     "key_P",     "key_Q",    "key_R",      "key_S",     "key_T",
+            "key_U",      "key_V",     "key_W",     "key_X",     "key_Y",    "key_Z",      "key_0",     "key_1",
+            "key_2",      "key_3",     "key_4",     "key_5",     "key_6",    "key_7",      "key_8",     "key_9",
+            "key_period", "key_minus", "key_slash", "key_space", "key_back", "key_delete", "key_clear", "key_overfly",
+            "index",      "fpln",      "clb",       "crz",       "des",      "dir_intc",   "legs",      "dep_arr",
+            "hold",       "prog",      "exec",      "fix",       "navrad",   "airport",    "up",        "down",
+            "perf",       "fuel_pred", "data",      "menu",      "sec_fpln", "atc_comm",   "prev",      "next",
+        };
+
+        return std::vector<ButtonSet>{
+            {"gns430", std::move(gns430)}, {"gns530", std::move(gns530)}, {"cdu739", std::move(cdu739)}};
     }();
 
     return sets;
