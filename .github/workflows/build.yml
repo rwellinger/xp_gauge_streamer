@@ -73,6 +73,70 @@ jobs:
           name: xp_gauge_streamer-macos
           path: build/xp_gauge_streamer.xpl
 
+  # Windows and Linux carry the only automatic correctness signal those
+  # platforms get: it compiles, and the SDK-free tests pass. Nothing here says
+  # anything about loading in the sim — see issue #24.
+  build-linux:
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: sudo apt-get update -q && sudo apt-get install -y libgl-dev nasm
+
+      - name: Setup dependencies
+        run: make setup
+
+      - name: Build
+        run: |
+          RELEASE_FLAG=""
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then RELEASE_FLAG="-DRELEASE=ON"; fi
+          cmake -B build -DCMAKE_BUILD_TYPE=Release $RELEASE_FLAG -Wno-dev
+          cmake --build build --parallel
+
+      - name: Run tests
+        run: ./build/xp_gauge_streamer_tests
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: xp_gauge_streamer-linux
+          path: build/xp_gauge_streamer.xpl
+
+  build-windows:
+    needs: [lint]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # The setup recipes are bash with curl, tar and unzip; Git Bash has all of
+      # it, which is smaller than maintaining a second download implementation.
+      - name: Install make and nasm
+        run: choco install make nasm --no-progress -y
+
+      - name: Setup dependencies
+        shell: bash
+        run: make setup
+
+      - name: Build
+        shell: bash
+        run: |
+          RELEASE_FLAG=""
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then RELEASE_FLAG="-DRELEASE=ON"; fi
+          cmake -B build -A x64 $RELEASE_FLAG
+          cmake --build build --config Release --parallel
+
+      - name: Run tests
+        shell: bash
+        run: ./build/Release/xp_gauge_streamer_tests.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: xp_gauge_streamer-windows
+          path: build/Release/xp_gauge_streamer.xpl
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [lint, build-macos]

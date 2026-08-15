@@ -161,6 +161,7 @@ add_library(xp_gauge_streamer MODULE
     src/device_registry.cpp
     src/frame_buffer.cpp
     src/frame_pipeline.cpp
+    src/gl_entry_points.cpp
     src/http_server.cpp
     src/jpeg_encoder.cpp
     src/main.cpp

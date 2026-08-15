@@ -9,12 +9,11 @@
 #include "avionics_capture.hpp"
 
 #include "capture_schedule.hpp"
+#include "gl_entry_points.hpp"
 #include "plugin_log.hpp"
 
 #include <XPLM/XPLMDisplay.h>
 #include <XPLM/XPLMProcessing.h>
-
-#include <OpenGL/gl.h>
 
 #include <atomic>
 #include <memory>
@@ -32,20 +31,6 @@ namespace
 // readback below, every capture costs a synchronisation with X-Plane's Metal
 // renderer, so the rate is the main lever on what this plugin costs.
 constexpr double CAPTURE_FRAMES_PER_SECOND = 6.0;
-
-// Legacy <OpenGL/gl.h> is GL 2.1 and lacks these names; the values are stable.
-#ifndef GL_PIXEL_PACK_BUFFER
-constexpr GLenum GL_PIXEL_PACK_BUFFER = 0x88EB;
-#endif
-#ifndef GL_PIXEL_PACK_BUFFER_BINDING
-constexpr GLenum GL_PIXEL_PACK_BUFFER_BINDING = 0x88ED;
-#endif
-#ifndef GL_STREAM_READ
-constexpr GLenum GL_STREAM_READ = 0x88E1;
-#endif
-#ifndef GL_READ_ONLY
-constexpr GLenum GL_READ_ONLY = 0x88B8;
-#endif
 
 struct PixelBuffer
 {
@@ -77,6 +62,23 @@ struct CaptureTarget
 FrameSink       frame_sink = nullptr;
 CaptureSchedule schedule(CAPTURE_FRAMES_PER_SECOND);
 bool            readback_enabled = false;
+
+// Resolving the GL 1.5 entry points needs a current context, which exists only
+// inside a draw callback — so it happens on the first one rather than at
+// startup. A platform that cannot supply them simply never captures.
+bool gl_entry_points_attempted = false;
+bool gl_entry_points_available = false;
+
+bool gl_entry_points_ready()
+{
+    if (!gl_entry_points_attempted)
+    {
+        gl_entry_points_attempted = true;
+        gl_entry_points_available = load_gl_entry_points();
+    }
+
+    return gl_entry_points_available;
+}
 
 // One bit per device id, so a civetweb thread can answer "does this aircraft
 // have the unit?" without touching the XPLM API — only the flight loop may.
@@ -135,13 +137,13 @@ void start_readback(PixelBuffer &slot, const GLint *viewport, int width, int hei
     const size_t needed_bytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 3;
 
     if (slot.name == 0)
-        glGenBuffers(1, &slot.name);
+        gl_gen_buffers(1, &slot.name);
 
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, slot.name);
+    gl_bind_buffer(GL_PIXEL_PACK_BUFFER, slot.name);
 
     if (slot.bytes != needed_bytes)
     {
-        glBufferData(GL_PIXEL_PACK_BUFFER, static_cast<GLsizeiptr>(needed_bytes), nullptr, GL_STREAM_READ);
+        gl_buffer_data(GL_PIXEL_PACK_BUFFER, static_cast<GLsizeiptr>(needed_bytes), nullptr, GL_STREAM_READ);
         slot.bytes   = needed_bytes;
         slot.pending = false;
     }
@@ -160,13 +162,13 @@ void deliver_ready_frame(CaptureTarget &target, PixelBuffer &slot)
     if (!slot.pending)
         return;
 
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, slot.name);
-    const auto *pixels = static_cast<const unsigned char *>(glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY));
+    gl_bind_buffer(GL_PIXEL_PACK_BUFFER, slot.name);
+    const auto *pixels = static_cast<const unsigned char *>(gl_map_buffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY));
 
     if (pixels != nullptr)
     {
         frame_sink(target.device_id, pixels, slot.width, slot.height);
-        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        gl_unmap_buffer(GL_PIXEL_PACK_BUFFER);
     }
 
     slot.pending = false;
@@ -203,7 +205,7 @@ void capture_frame(CaptureTarget &target)
 
     deliver_ready_frame(target, ready);
 
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, static_cast<GLuint>(saved_binding));
+    gl_bind_buffer(GL_PIXEL_PACK_BUFFER, static_cast<GLuint>(saved_binding));
     glPixelStorei(GL_PACK_ALIGNMENT, saved_alignment);
 }
 
@@ -211,7 +213,8 @@ int draw_after(XPLMDeviceID device_id, int is_before, void *refcon)
 {
     auto *target = static_cast<CaptureTarget *>(refcon);
 
-    if (frame_sink != nullptr && readback_enabled && schedule.is_due(target->device_id, XPLMGetElapsedTime()))
+    if (frame_sink != nullptr && readback_enabled && gl_entry_points_ready() &&
+        schedule.is_due(target->device_id, XPLMGetElapsedTime()))
         capture_frame(*target);
 
     return 1;
