@@ -5,7 +5,7 @@ alwaysApply: true
 
 # xp_gauge_streamer
 
-C++17 X-Plane 12 plugin for **macOS Apple Silicon (arm64) only**. Shown in-sim as
+C++17 X-Plane 12 plugin for **macOS (arm64 only), Windows x64 and Linux x64**. Shown in-sim as
 **Welly's Gauge Streamer**. Captures the Laminar GNS430/530 and airliner CDU,
 streams MJPEG to a browser frontend, and forwards presses back over WebSocket.
 
@@ -14,7 +14,7 @@ Same guidance as [CLAUDE.md](../../CLAUDE.md) for Claude Code.
 ## Commands
 
 ```bash
-make setup     # SDK, civetweb, Catch2, json, ImGui; libjpeg-turbo via Homebrew
+make setup     # SDK, civetweb, Catch2, json, ImGui, libjpeg-turbo
 make build     # → build/xp_gauge_streamer.xpl
 make test      # Catch2 unit tests (no SDK link)
 make install   # Code-sign + deploy plugin, web/, default settings
@@ -45,9 +45,12 @@ Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
 
 ## Build Details
 
-- CMake 3.21+, C++17, macOS 12.0+, **arm64 only**
+- CMake 3.21+, C++17. macOS 12.0+ **arm64 only** (no Universal Binary — Intel Macs
+  cannot load it), Windows 10+ x64 (MSVC 2022), Linux x64 (GCC 11+)
 - `sdk/` and `vendor/` from `make setup`, not committed
-- libjpeg-turbo linked statically
+- libjpeg-turbo built from vendored source via ExternalProject, linked statically;
+  its own CMakeLists refuses `add_subdirectory`. SIMD needs NASM on x64.
+- Only macOS is used in anger; Windows verified in a cloud VM, Linux best effort
 - `.xpl` not ASan-instrumented — use Instruments.app for in-sim analysis
 
 ## Code Quality
@@ -61,3 +64,7 @@ Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
 - **Minimal comments**: comment only non-obvious *why*.
 - **No speculative generality**: match existing style; no hypothetical abstractions.
 - **Boundaries only for validation**: trust internals; validate at edges.
+- **Platform differences in their own translation units or one leaf seam — never in
+  domain code.** `opengl.hpp` includes the GL header, `gl_entry_points` resolves the
+  GL 1.5 functions, `network_info` is two files behind one header. A new `#ifdef` in
+  a module doing real work is a defect.

@@ -2,10 +2,10 @@
 
 ![Build](https://github.com/rwellinger/xp_gauge_streamer/actions/workflows/build.yml/badge.svg)
 
-Native X-Plane 12 plugin for **macOS (Apple Silicon)** that captures the default
-Laminar avionics displays — the GNS430/530 and the airliner CDU — and streams
-them to a web frontend, where they can be operated by click or touch instead of
-via the cockpit popout.
+Native X-Plane 12 plugin for **macOS, Windows and Linux** that captures the
+default Laminar avionics displays — the GNS430/530 and the airliner CDU — and
+streams them to a web frontend, where they can be operated by click or touch
+instead of via the cockpit popout.
 
 ![The GNS 530 on an iPad: the streamed screen in a bezel drawn by the frontend](images/ipad-gns530.jpeg)
 
@@ -20,16 +20,34 @@ operate the units in the sim.
 - [Endpoints](#endpoints)
 - [Adding a device type](#adding-a-device-type)
 - [Security](#security)
+- [Known gaps](#known-gaps)
 - [For developers](#for-developers)
 
 ## Quick start
 
 1. Build and install (or copy a release build) into your X-Plane 12 plugins folder.
 2. In X-Plane, open **Plugins → Welly's Gauge Streamer → Stream settings** — it shows the address to type on the tablet, which devices this aircraft has, and the port.
-3. On a tablet in the same network, open `http://<mac-ip>:8080/` (or `http://localhost:8080/` on this machine).
+3. On a tablet in the same network, open `http://<your-ip>:8080/` (or `http://localhost:8080/` on this machine).
 4. Pick a unit on the selection page, or bookmark `/device/<slug>` for a dedicated screen.
 
-**Requirements:** macOS 12.0+ (arm64) · X-Plane 12 · CMake 3.21+ · Homebrew
+### Requirements
+
+| Platform | Requirement | Tested |
+|---|---|---|
+| macOS | 12.0+, **Apple Silicon only** — an Intel Mac cannot load this plugin | yes, this is where it is developed |
+| Windows | 10 or 11, x64, Visual Studio 2022 to build | the capture path, in a cloud VM |
+| Linux | x64, GCC 11+ | **no** — builds on CI, never loaded in the sim |
+
+Building from source additionally needs CMake 3.21+, and NASM on x64 for
+libjpeg-turbo's SIMD paths (Apple Silicon uses NEON and needs nothing).
+
+**What "tested" means here.** The developer flies on macOS, so that is the only
+platform where every release is used in anger. Windows was verified in a cloud
+VM: the plugin loads, the capture works under Vulkan, the stream arrives — but
+that machine sees no home network, so LAN access from a tablet and the Windows
+firewall prompt are unverified there. **Linux is best effort**: CI proves it
+compiles and that the domain tests pass, nothing more. Reports from Linux users
+are welcome; a green build is not a promise.
 
 ## Why Gauge Streamer?
 
@@ -167,6 +185,23 @@ the plugin also writes it on first start if it is missing. The port can also be
 set in the plugin window. Settings live under `Output/` so a plugin update leaves
 them alone. Changes take effect on the next X-Plane start.
 
+## Known gaps
+
+**Windows: the firewall prompt.** The first time the server starts, Windows asks
+whether to allow the port. Decline it and the tablet reaches nothing, while
+everything inside the sim looks perfectly fine — including the address in the
+plugin window. If the page loads on `localhost` but not from the tablet, this is
+the first thing to check.
+
+**Windows: SmartScreen.** The `.xpl` from a GitHub release is unsigned and may be
+quarantined. A code-signing certificate does not pay for a hobby plugin; unblock
+the file in its properties if Windows holds it back.
+
+**Linux: no Copy button.** The plugin window shows the URL but omits the copy
+button, because ImGui has no clipboard implementation there and it would only
+appear to work. Shelling out to `xclip` or `wl-copy` would add a dependency that
+a Steam Deck does not have.
+
 ---
 
 ## For developers
@@ -176,7 +211,7 @@ Project context for AI assistants: [.cursor/rules/xp-gauge-streamer.mdc](.cursor
 ### Build from source
 
 ```bash
-make setup    # SDK, civetweb, Catch2, json, ImGui → sdk/ + vendor/; libjpeg-turbo via Homebrew
+make setup    # SDK, civetweb, Catch2, json, ImGui, libjpeg-turbo → sdk/ + vendor/
 make build    # Configure + compile → build/xp_gauge_streamer.xpl
 make test     # Run the Catch2 unit tests
 make install  # Code-sign and copy plugin, web/ and default settings into X-Plane
@@ -186,8 +221,18 @@ make install  # Code-sign and copy plugin, web/ and default settings into X-Plan
 are populated by `make setup`.
 
 `make install` deploys to the path in the `XPLANE_ROOT` variable at the top of
-the `Makefile`; adjust it for your installation. The folder name `mac_x64` is
-X-Plane's name for 64-bit macOS plugins and applies to arm64 binaries too.
+the `Makefile`; adjust it for your installation. It picks the platform folder
+itself — `mac_x64`, `win_x64` or `lin_x64` — and signs only on macOS. X-Plane's
+name for 64-bit macOS plugins is `mac_x64` even for an arm64 binary; the name
+predates Apple Silicon and does not describe the architecture.
+
+On Windows the supported route is CMake directly or the CI artifact — `make`
+there needs MSYS or Git Bash:
+
+```cmd
+cmake -B build -A x64
+cmake --build build --config Release
+```
 
 ### Code quality
 
@@ -211,7 +256,7 @@ web/         frontend — no framework, no build step
 web/bezels/  one JSON per device type: screen area, keys, geometry, commands
 tests/       Catch2 unit tests — never link the SDK, domain logic only
 sdk/         X-Plane SDK headers + stub frameworks   (make setup)
-vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2  (make setup)
+vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2, libjpeg-turbo  (make setup)
 ```
 
 ### Dependencies
@@ -220,7 +265,7 @@ vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2  (make setup)
 |---------------|---------|---------------------|------------------------------------|
 | X-Plane SDK   | 4.3.0   | `make setup`        | Plugin API, Avionics capture       |
 | civetweb      | 1.16    | `make setup`        | Embedded HTTP server + WebSocket   |
-| libjpeg-turbo | latest  | Homebrew            | JPEG encoding (arm64/NEON)         |
+| libjpeg-turbo | 3.2.0   | `make setup`        | JPEG encoding (SIMD: NEON or x86)  |
 | nlohmann/json | 3.12.0  | `make setup`        | Parsing control messages           |
 | Dear ImGui    | 1.92.8  | `make setup`        | In-sim settings window             |
 | Catch2        | 3.15.3  | `make setup`        | Unit tests                         |
