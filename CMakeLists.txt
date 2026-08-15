@@ -30,6 +30,15 @@ endif()
 
 message(STATUS "Building for ${XP_PLATFORM_FOLDER}")
 
+# Reading the machine's own address has no portable spelling: POSIX has
+# getifaddrs, Windows has GetAdaptersAddresses. Two files, one header, and the
+# choice made here rather than by a preprocessor branch inside either of them.
+if(WIN32)
+    set(XP_NETWORK_INFO_SOURCE src/network_info_windows.cpp)
+else()
+    set(XP_NETWORK_INFO_SOURCE src/network_info_posix.cpp)
+endif()
+
 if(XP_GAUGE_STREAMER_SANITIZE)
     set(XP_GAUGE_STREAMER_SANITIZER_FLAGS
         -fsanitize=address,undefined
@@ -165,7 +174,7 @@ add_library(xp_gauge_streamer MODULE
     src/http_server.cpp
     src/jpeg_encoder.cpp
     src/main.cpp
-    src/network_info.cpp
+    ${XP_NETWORK_INFO_SOURCE}
     src/plugin_log.cpp
     src/plugin_paths.cpp
     src/plugin_ui.cpp
