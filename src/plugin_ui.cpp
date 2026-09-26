@@ -107,7 +107,8 @@ void close_window();
 
 void forward_key(XPLMWindowID, char key, XPLMKeyFlags flags, char virtual_key, void *, int losing_focus)
 {
-    if (losing_focus != 0 || (flags & xplm_DownFlag) == 0)
+    const bool key_down = (static_cast<unsigned>(flags) & static_cast<unsigned>(xplm_DownFlag)) != 0;
+    if (losing_focus != 0 || !key_down)
         return;
 
     ImGuiIO &io = ImGui::GetIO();
@@ -395,7 +396,8 @@ void start_ui(DevicesChanged on_devices_changed)
     ImGuiIO &io    = ImGui::GetIO();
     io.IniFilename = nullptr; // no imgui.ini next to the X-Plane binary
     io.LogFilename = nullptr;
-    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    io.ConfigFlags = static_cast<ImGuiConfigFlags>(static_cast<unsigned>(io.ConfigFlags) |
+                                                   static_cast<unsigned>(ImGuiConfigFlags_NoMouseCursorChange));
 
     ImGui::StyleColorsDark();
     ImGui_ImplOpenGL2_Init();

@@ -226,11 +226,11 @@ int on_websocket_connect(const mg_connection *, void *)
 
 int on_websocket_data(mg_connection *, int bits, char *data, size_t length, void *)
 {
-    constexpr int OPCODE_MASK  = 0x0f;
-    constexpr int OPCODE_TEXT  = 0x1;
-    constexpr int OPCODE_CLOSE = 0x8;
+    constexpr unsigned OPCODE_MASK  = 0x0f;
+    constexpr unsigned OPCODE_TEXT  = 0x1;
+    constexpr unsigned OPCODE_CLOSE = 0x8;
 
-    const int opcode = bits & OPCODE_MASK;
+    const unsigned opcode = static_cast<unsigned>(bits) & OPCODE_MASK;
     if (opcode == OPCODE_CLOSE)
         return 0;
 
