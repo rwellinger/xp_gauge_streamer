@@ -1,10 +1,17 @@
 SHELL := /bin/bash
 
-XPLANE_ROOT := /Users/robertw/X-Plane 12
+# Override on machines with a different install path: XPLANE_ROOT="/path/to/X-Plane 12" make install
+XPLANE_ROOT ?= /Users/robertw/X-Plane 12
 # Settings live in Output/ rather than the plugin folder so a plugin update,
 # which replaces that folder wholesale, leaves them alone.
 SETTINGS_DIR := $(XPLANE_ROOT)/Output/xp_gauge_streamer
-PLUGIN_DIR  := $(XPLANE_ROOT)/Resources/available plugins/xp_gauge_streamer
+# XPLaunch keeps the plugins in xplaunchData/Plugins and symlinks them into
+# Resources/plugins; without it, Resources/plugins is the real thing. Install into
+# whichever exists — never into "available plugins", a parking spot X-Plane never reads.
+PLUGIN_ROOT := $(shell [ -d "$(XPLANE_ROOT)/xplaunchData/Plugins" ] \
+                 && echo "$(XPLANE_ROOT)/xplaunchData/Plugins" \
+                 || echo "$(XPLANE_ROOT)/Resources/plugins")
+PLUGIN_DIR  := $(PLUGIN_ROOT)/xp_gauge_streamer
 
 # X-Plane's folder name for this platform's binaries. mac_x64 applies to arm64
 # too — the name predates Apple Silicon and does not describe the architecture.
