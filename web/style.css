@@ -189,7 +189,8 @@ h1 {
     display: grid;
     grid-template-columns: repeat(24, 1fr);
     grid-template-rows: repeat(14, 1fr);
-    padding: 0;
+    /* The black margin the unit leaves around its text, in bezel units. */
+    padding: calc(var(--unit) * 20);
     overflow: hidden;
     container-type: size;
 }
@@ -199,13 +200,13 @@ h1 {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    font: 400 calc(100cqh / 14 * 0.9) / 1 ui-monospace, Menlo, Consolas, monospace;
+    font: 500 calc(100cqh / 14 * 0.95) / 1 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre;
     color: var(--mcdu-white);
 }
 
 .cell[data-size="s"] {
-    font-size: calc(100cqh / 14 * 0.7);
+    font-size: calc(100cqh / 14 * 0.72);
 }
 
 .cell[data-color="g"] { color: var(--mcdu-green); }
