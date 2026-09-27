@@ -21,7 +21,7 @@ namespace xp_gauge_streamer
 // No encoding, no I/O.
 using FrameSink = void (*)(DeviceId device_id, const unsigned char *rgb, int width, int height);
 
-// Registers a draw callback for every device the registry has enabled. The
+// Registers a draw callback for every enabled framebuffer device. The
 // callbacks stay registered while the plugin runs — they are what tells the
 // plugin which devices the aircraft has. Whether they read pixels back is
 // set_readback_enabled()'s business.
@@ -31,15 +31,11 @@ void start_capture(FrameSink sink);
 // watches. Registration is unaffected.
 void set_readback_enabled(bool enabled);
 
-// Asks the sim which registered devices the current aircraft actually has and
-// stores the answer. Main thread only — call it regularly, an aircraft change
-// swaps the whole panel.
+// Asks the sim which framebuffer devices the current aircraft actually has and
+// reports the answer to device_presence. A device switched off in the registry
+// counts as absent, since nothing is registered for it then. Main thread only —
+// call it regularly, an aircraft change swaps the whole panel.
 void refresh_device_presence();
-
-// True when the current aircraft uses the device, as of the last
-// refresh_device_presence(). False for a device that is switched off in the
-// registry, since nothing is registered for it then. Safe from any thread.
-bool device_is_in_aircraft(DeviceId device_id);
 
 // Re-reads the registry's enabled flags and registers or unregisters devices
 // so the callbacks match. Call after toggling a device at runtime.

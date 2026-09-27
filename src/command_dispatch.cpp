@@ -9,7 +9,6 @@
 #include "command_dispatch.hpp"
 
 #include "command_catalog.hpp"
-#include "device_registry.hpp"
 #include "plugin_log.hpp"
 
 #include <XPLM/XPLMProcessing.h>
@@ -35,47 +34,47 @@ constexpr float DRAIN_EVERY_FRAME = -1.0f;
 // once when the sim resumes.
 constexpr size_t QUEUE_LIMIT = 128;
 
-// Resolved once at startup: XPLMFindCommand per keypress would be wasteful,
-// and calling it from a civetweb thread would not be safe.
-std::map<std::string, XPLMCommandRef> commands;
+// Resolved on first use, on the main thread: an aircraft's own commands (the
+// ToLiss MCDU keys) only exist once that aircraft has loaded, long after the
+// plugin started. Only the flight loop touches the cache, so it needs no lock.
+std::map<std::string, XPLMCommandRef> resolved_commands;
 
-std::vector<XPLMCommandRef> queued_presses;
-std::mutex                  dispatch_mutex;
-bool                        running = false;
+std::vector<std::string> queued_presses;
+std::mutex               dispatch_mutex;
+bool                     running = false;
 
-void resolve_commands()
+XPLMCommandRef resolve_command(const std::string &name)
 {
-    for (const DeviceDescriptor &device : all_devices())
+    const auto cached = resolved_commands.find(name);
+    if (cached != resolved_commands.end())
+        return cached->second;
+
+    XPLMCommandRef command = XPLMFindCommand(name.c_str());
+    if (command == nullptr)
     {
-        for (const std::string_view button : known_buttons(device.type))
-        {
-            const std::string name = command_name(device.slug, button);
-            if (commands.find(name) != commands.end())
-                continue;
-
-            XPLMCommandRef command = XPLMFindCommand(name.c_str());
-            if (command == nullptr)
-            {
-                log_format("command not found: %s", name.c_str());
-                continue;
-            }
-
-            commands.emplace(name, command);
-        }
+        log_format("command not found: %s", name.c_str());
+        return nullptr;
     }
+
+    resolved_commands.emplace(name, command);
+    return command;
 }
 
 float run_queued_presses(float, float, int, void *)
 {
-    std::vector<XPLMCommandRef> presses;
+    std::vector<std::string> presses;
     {
         const std::lock_guard<std::mutex> lock(dispatch_mutex);
         presses.swap(queued_presses);
     }
 
     // Outside the lock: a civetweb thread must never wait on the sim.
-    for (XPLMCommandRef command : presses)
-        XPLMCommandOnce(command);
+    for (const std::string &name : presses)
+    {
+        XPLMCommandRef command = resolve_command(name);
+        if (command != nullptr)
+            XPLMCommandOnce(command);
+    }
 
     return DRAIN_EVERY_FRAME;
 }
@@ -88,11 +87,10 @@ void start_dispatch()
     if (running)
         return;
 
-    resolve_commands();
     running = true;
 
     XPLMRegisterFlightLoopCallback(run_queued_presses, DRAIN_EVERY_FRAME, nullptr);
-    log_format("command dispatch ready, %zu commands resolved", commands.size());
+    log_format("command dispatch ready");
 }
 
 void stop_dispatch()
@@ -102,7 +100,7 @@ void stop_dispatch()
     const std::lock_guard<std::mutex> lock(dispatch_mutex);
     running = false;
     queued_presses.clear();
-    commands.clear();
+    resolved_commands.clear();
 }
 
 bool press_button(std::string_view device_slug, std::string_view button)
@@ -115,17 +113,13 @@ bool press_button(std::string_view device_slug, std::string_view button)
     if (!running)
         return false;
 
-    const auto command = commands.find(name);
-    if (command == commands.end())
-        return false;
-
     if (queued_presses.size() >= QUEUE_LIMIT)
     {
         log_format("press queue full, dropping %s", name.c_str());
         return false;
     }
 
-    queued_presses.push_back(command->second);
+    queued_presses.push_back(name);
     return true;
 }
 

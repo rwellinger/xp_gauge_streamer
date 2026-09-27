@@ -30,12 +30,14 @@ Validate the plugin in X-Plane 12. Unit tests cover domain logic only.
 
 Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
 
-- **`main.cpp`** — Entry points; `follow_viewers` enables readback only while streams are open
-- **`avionics_capture`** — Draw callbacks; raw RGB on main thread; `set_readback_enabled`
+- **`main.cpp`** — Entry points; `follow_viewers` enables readback / MCDU reading only while viewers are open
+- **`avionics_capture`** — Draw callbacks for framebuffer devices; raw RGB on main thread; `set_readback_enabled`
+- **`toliss_mcdu_source`** — Reads ToLiss `AirbusFBW/MCDU<n>` screen datarefs on main thread; `toliss_mcdu_screen` (SDK-free) builds the 24×14 grid
+- **`device_presence`** — Which devices the loaded aircraft has; thread-safe
 - **`frame_pipeline`** — Per-device encoder threads (libjpeg-turbo); `publish_frame` / `latest_jpeg`
-- **`http_server`** — civetweb: static `web/`, `/stream/<slug>`, `/devices`, `/control` (no auth)
-- **`command_dispatch`** — Queue presses from network → execute on main thread; whitelist via `command_catalog`
-- **`device_registry`** — device table (`slug`, `type`, `command_prefix`); SDK-free `DeviceId`
+- **`http_server`** — civetweb: static `web/`, `/stream/<slug>` (MJPEG), `/screen/<slug>` (SSE text), `/devices`, `/control` (no auth)
+- **`command_dispatch`** — Queue presses from network → resolve lazily + execute on main thread; whitelist via `command_catalog`
+- **`device_registry`** — device table (`slug`, `type`, `command_prefix`, `ScreenSource`); SDK-free `DeviceId`
 - **`plugin_ui`** — Dear ImGui settings window
 - **`settings`** — `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
 

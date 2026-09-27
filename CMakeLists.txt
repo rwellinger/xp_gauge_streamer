@@ -167,6 +167,7 @@ add_library(xp_gauge_streamer MODULE
     src/capture_schedule.cpp
     src/command_catalog.cpp
     src/command_dispatch.cpp
+    src/device_presence.cpp
     src/device_registry.cpp
     src/frame_buffer.cpp
     src/frame_pipeline.cpp
@@ -179,6 +180,8 @@ add_library(xp_gauge_streamer MODULE
     src/plugin_paths.cpp
     src/plugin_ui.cpp
     src/settings.cpp
+    src/toliss_mcdu_screen.cpp
+    src/toliss_mcdu_source.cpp
     ${IMGUI_SOURCES}
 )
 

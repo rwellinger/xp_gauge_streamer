@@ -8,7 +8,7 @@
 
 #include "plugin_ui.hpp"
 
-#include "avionics_capture.hpp"
+#include "device_presence.hpp"
 #include "device_registry.hpp"
 #include "http_server.hpp"
 #include "network_info.hpp"

@@ -97,3 +97,22 @@ TEST_CASE("the popout commands stay out of reach", "[command_catalog]")
     CHECK(command_name("cdu739_1", "CDU_popup").empty());
     CHECK(command_name("cdu739_1", "CDU_popout").empty());
 }
+
+TEST_CASE("the ToLiss MCDUs draw from their unit's AirbusFBW family", "[command_catalog]")
+{
+    CHECK(command_name("toliss_mcdu_1", "LSK1L") == "AirbusFBW/MCDU1LSK1L");
+    CHECK(command_name("toliss_mcdu_2", "LSK1L") == "AirbusFBW/MCDU2LSK1L");
+    CHECK(command_name("toliss_mcdu_1", "KeyA") == "AirbusFBW/MCDU1KeyA");
+    CHECK(command_name("toliss_mcdu_2", "SlewRight") == "AirbusFBW/MCDU2SlewRight");
+
+    // 12 line selects, 26 letters, 10 digits, 10 editing and brightness keys,
+    // 14 page keys — every AirbusFBW/MCDU1 command of the A319.
+    CHECK(known_buttons("toliss_mcdu").size() == 72);
+}
+
+TEST_CASE("the ToLiss keys are case-sensitive", "[command_catalog]")
+{
+    CHECK(command_name("toliss_mcdu_1", "keya").empty());
+    CHECK(command_name("toliss_mcdu_1", "lsk1l").empty());
+    CHECK(command_name("toliss_mcdu_1", "key_A").empty());
+}
