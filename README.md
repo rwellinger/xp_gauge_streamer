@@ -18,6 +18,7 @@ operate the units in the sim.
 - [Quick start](#quick-start)
 - [Why Gauge Streamer?](#why-gauge-streamer)
 - [Watching the stream](#watching-the-stream)
+- [ToLiss MCDU](#toliss-mcdu)
 - [Endpoints](#endpoints)
 - [Adding a device type](#adding-a-device-type)
 - [Security](#security)
@@ -54,6 +55,7 @@ are welcome; a green build is not a promise.
 
 - **Operate the unit from a tablet.** Click and touch the bezel in the browser instead of hunting for the cockpit popout. A CDU in particular is a thing you type on, which a tablet does better than a popout window.
 - **Capture only while someone watches.** With no open stream, the plugin costs X-Plane nothing.
+- **Text where the aircraft offers it.** The ToLiss MCDU arrives as characters rather than pixels — sharp at any size and next to free for the sim.
 - **Bezel is drawn, not captured.** X-Plane hands out the screen only — the frontend draws the frame, keys, and knobs around it.
 - **Reconnects on its own.** After an X-Plane restart or a WLAN dropout, the page reconnects; a dead frontend that looks alive is worse in flight than a visible error.
 - **Extensible by data.** A new device type is a bezel JSON plus registry and whitelist entries — no renderer change.
@@ -97,30 +99,62 @@ Aircraft that bring their own FMC — ZIBO, most payware — compute and draw it
 themselves and bind no avionics device at all. There is no framebuffer to read,
 so they show as absent and no bezel would help. That is the line this plugin
 draws: it serves the devices X-Plane provides, not what an add-on renders on its
-own — with one exception.
-
-**ToLiss MCDU.** ToLiss publishes its MCDU's screen as datarefs, one per line,
-colour and font size, the same ones hardware MCDUs are driven from. The plugin
-reads them while somebody watches, sends the display as a 24×14 text grid over
-`/screen/<slug>`, and the page draws it in the MCDU's colours — sharper than any
-capture and a few hundred bytes per change. The bezel follows the Airbus unit:
-line selects on the screen's data rows, DIR to MCDU MENU with BRT and DIM beside
-them, AIRPORT and the slew arrows over the number pad, letters with `/`, SP,
-OVFY and CLR. The arrow keys, space and Backspace work from a keyboard.
-Developed against the A319; the A320neo, A321 and A340 use the same datarefs
-and commands per unit, but have not been tried.
+own — with one exception, the [ToLiss MCDU](#toliss-mcdu).
 
 With one stream open, expect the sim to give up roughly 4–5 % of its frame rate.
 The plugin reads the device's framebuffer back six times a second on X-Plane's
 main thread. Cost does not depend on monitor resolution — the device screen is
 read at its own fixed size — but a second open stream adds its own share. Close
 the tab and the cost goes away. A CDU screen is the cheaper one: at 300×330 it
-is about a third of a GNS530's pixels.
+is about a third of a GNS530's pixels. The ToLiss MCDU reads no framebuffer at
+all and costs next to nothing.
 
 **A black CDU screen is usually an electrical problem, not a streaming one.** The
 unit only draws when the aircraft has power, so on a cold and dark 737 the stream
 runs fine and shows nothing until the GPU or APU is on. `/devices` reporting
 `present: true` says the aircraft has the unit, not that it is lit.
+
+## ToLiss MCDU
+
+ToLiss draws its MCDU itself, so there is no framebuffer X-Plane could hand
+out. What ToLiss does publish is the screen's content: one dataref per line,
+colour and font size — `AirbusFBW/MCDU1cont3g` is the green, large text of the
+third data line — the same datarefs hardware MCDUs are driven from. The plugin
+reads them ten times a second while somebody watches, composes a 24×14 grid of
+characters with their colour and size, and sends it to the page whenever it
+changes. The page draws it in the MCDU's colours, including the amber entry
+boxes, cyan brackets, select and slew arrows and the degree sign.
+
+Compared with the captured units, that makes the MCDU:
+
+- **sharp at any size** — the browser draws real text instead of scaling a JPEG,
+- **cheap for the sim** — about 150 short dataref reads per unit and update,
+  no readback from the GPU,
+- **quick to answer** — a typed character shows up within a tenth of a second,
+  at a few hundred bytes per change.
+
+| Aircraft | Status |
+|---|---|
+| ToLiss A319 | tested — screen, all keys, both units |
+| ToLiss A340-600 | test pending |
+| ToLiss A320neo, A321 / A321neo | untested; same datarefs and commands per unit as the A319 |
+
+The datarefs and commands are named after the unit, not the model —
+`AirbusFBW/MCDU1…` for the captain, `AirbusFBW/MCDU2…` for the first officer —
+which is why one implementation covers the family. The plugin recognises a
+ToLiss aircraft by those datarefs, not by its name, and picks them up again after
+every aircraft load. The slugs are `toliss_mcdu_1` and `toliss_mcdu_2`.
+
+The bezel follows the Airbus unit: six line selects down each side, level with
+the screen's data rows; DIR, PROG, PERF, INIT, DATA and F-PLN, RAD NAV, FUEL
+PRED, SEC F-PLN, ATC COMM, MCDU MENU below the screen with BRT and DIM beside
+them; AIRPORT and the four slew arrows over the number pad; the letters with `/`,
+SP, OVFY and CLR. From a keyboard, letters, digits, `.`, `/` and `-` (+/−) type
+themselves, the arrow keys slew, space is SP and Backspace is CLR.
+
+**An empty MCDU screen: check the power first, as on the CDU.** Like the real
+unit, the ToLiss MCDU needs electrical power to show anything, while `/devices`
+reports it as present as soon as the aircraft is loaded.
 
 ## Endpoints
 
@@ -129,7 +163,7 @@ runs fine and shows nothing until the GPU or APU is on. `/devices` reporting
 | `/`              | Selection page, no stream                              |
 | `/device/<slug>` | One unit in its bezel                                  |
 | `/stream/<slug>` | MJPEG stream of one unit                               |
-| `/screen/<slug>` | Server-sent events: the ToLiss MCDU's screen as text   |
+| `/screen/<slug>` | Server-sent events: the ToLiss MCDU's screen as text (see below) |
 | `/devices`       | JSON: slug, type, name, `screen` (`mjpeg` or `text`), and whether the aircraft has it|
 | `/control`       | WebSocket: `{"device": "gns530_1", "button": "fpl"}`   |
 
@@ -142,6 +176,21 @@ upper case: `key_A`, not `key_a`. The ToLiss MCDUs use `AirbusFBW/MCDU1` and
 exactly as ToLiss does. Only whitelisted names are accepted; anything
 else is dropped and logged. Presses are queued and executed on X-Plane's main
 thread, never from the network thread.
+
+Each event on `/screen/<slug>` carries the whole display, one entry per row with
+one character per column:
+
+```json
+{"rows": [{"text": "        A319-112        ",
+           "colors": "wwwwwwwwwwwwwwwwwwwwwwww",
+           "sizes": "LLLLLLLLLLLLLLLLLLLLLLLL"}, …]}
+```
+
+Colours are `w` white, `g` green, `b` cyan, `y` yellow, `a` amber and `m`
+magenta; sizes are `L` large and `s` small. Row 0 is the title, rows 1–12
+alternate label and data line, row 13 is the scratchpad. An event is sent only
+when the screen changes, plus a comment line every five seconds so a closed
+client is noticed.
 
 ## Adding a device type
 
@@ -181,6 +230,12 @@ So a G1000 or an MCP takes three steps and no renderer change:
 
 The selection page draws its tile picture from the same JSON, so a new type
 brings its own likeness along.
+
+That recipe covers units X-Plane renders itself. An add-on that draws its own
+display — like the ToLiss MCDU — needs a screen source of its own in the plugin
+as well: a `device_registry` entry with `ScreenSource::text_datarefs`, and a
+module that reads the add-on's datarefs into the text grid. The bezel and the
+page stay data, as for every other type.
 
 ## Security
 
@@ -281,7 +336,7 @@ vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2, libjpeg-turbo  (make s
 | X-Plane SDK   | 4.3.0   | `make setup`        | Plugin API, Avionics capture       |
 | civetweb      | 1.16    | `make setup`        | Embedded HTTP server + WebSocket   |
 | libjpeg-turbo | 3.2.0   | `make setup`        | JPEG encoding (SIMD: NEON or x86)  |
-| nlohmann/json | 3.12.0  | `make setup`        | Parsing control messages           |
+| nlohmann/json | 3.12.0  | `make setup`        | Control messages, MCDU screen JSON |
 | Dear ImGui    | 1.92.8  | `make setup`        | In-sim settings window             |
 | Catch2        | 3.15.3  | `make setup`        | Unit tests                         |
 
