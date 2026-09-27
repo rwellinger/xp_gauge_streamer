@@ -1,0 +1,92 @@
+{
+  "name": "MCDU",
+  "size": { "width": 1000, "height": 1500 },
+  "screen": { "x": 170, "y": 40, "width": 660, "height": 620 },
+  "controls": [
+    {
+      "kind": "grid",
+      "columns": 1,
+      "labelSize": 24,
+      "box": { "x": 30, "y": 122, "width": 120, "height": 497 },
+      "keys": [
+        { "label": "—", "command": "LSK1L" },
+        { "label": "—", "command": "LSK2L" },
+        { "label": "—", "command": "LSK3L" },
+        { "label": "—", "command": "LSK4L" },
+        { "label": "—", "command": "LSK5L" },
+        { "label": "—", "command": "LSK6L" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 1,
+      "labelSize": 24,
+      "box": { "x": 850, "y": 122, "width": 120, "height": 497 },
+      "keys": [
+        { "label": "—", "command": "LSK1R" },
+        { "label": "—", "command": "LSK2R" },
+        { "label": "—", "command": "LSK3R" },
+        { "label": "—", "command": "LSK4R" },
+        { "label": "—", "command": "LSK5R" },
+        { "label": "—", "command": "LSK6R" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 6,
+      "labelSize": 22,
+      "box": { "x": 30, "y": 700, "width": 790, "height": 170 },
+      "keys": [
+        { "label": "DIR", "command": "DirTo" }, { "label": "PROG", "command": "Prog" }, { "label": "PERF", "command": "Perf" }, { "label": "INIT", "command": "Init" }, { "label": "DATA", "command": "Data" }, {},
+        { "label": "F-PLN", "command": "Fpln" }, { "label": "RAD\nNAV", "command": "RadNav" }, { "label": "FUEL\nPRED", "command": "FuelPred" }, { "label": "SEC\nF-PLN", "command": "SecFpln" }, { "label": "ATC\nCOMM", "command": "ATC" }, { "label": "MCDU\nMENU", "command": "Menu" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 1,
+      "labelSize": 22,
+      "box": { "x": 850, "y": 700, "width": 120, "height": 170 },
+      "keys": [
+        { "label": "BRT", "command": "KeyBright" },
+        { "label": "DIM", "command": "KeyDim" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 2,
+      "labelSize": 22,
+      "box": { "x": 30, "y": 890, "width": 300, "height": 240 },
+      "keys": [
+        { "label": "AIR\nPORT", "command": "Airport" }, {},
+        { "label": "←", "command": "SlewLeft", "shortcut": "ArrowLeft" }, { "label": "↑", "command": "SlewUp", "shortcut": "ArrowUp" },
+        { "label": "→", "command": "SlewRight", "shortcut": "ArrowRight" }, { "label": "↓", "command": "SlewDown", "shortcut": "ArrowDown" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 3,
+      "labelSize": 40,
+      "box": { "x": 30, "y": 1150, "width": 300, "height": 320 },
+      "keys": [
+        { "label": "1", "command": "Key1" }, { "label": "2", "command": "Key2" }, { "label": "3", "command": "Key3" },
+        { "label": "4", "command": "Key4" }, { "label": "5", "command": "Key5" }, { "label": "6", "command": "Key6" },
+        { "label": "7", "command": "Key7" }, { "label": "8", "command": "Key8" }, { "label": "9", "command": "Key9" },
+        { "label": ".", "command": "KeyDecimal" }, { "label": "0", "command": "Key0" }, { "label": "+/−", "command": "KeyPM", "shortcut": "-" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 5,
+      "labelSize": 35,
+      "box": { "x": 361, "y": 890, "width": 609, "height": 580 },
+      "keys": [
+        { "label": "A", "command": "KeyA" }, { "label": "B", "command": "KeyB" }, { "label": "C", "command": "KeyC" }, { "label": "D", "command": "KeyD" }, { "label": "E", "command": "KeyE" },
+        { "label": "F", "command": "KeyF" }, { "label": "G", "command": "KeyG" }, { "label": "H", "command": "KeyH" }, { "label": "I", "command": "KeyI" }, { "label": "J", "command": "KeyJ" },
+        { "label": "K", "command": "KeyK" }, { "label": "L", "command": "KeyL" }, { "label": "M", "command": "KeyM" }, { "label": "N", "command": "KeyN" }, { "label": "O", "command": "KeyO" },
+        { "label": "P", "command": "KeyP" }, { "label": "Q", "command": "KeyQ" }, { "label": "R", "command": "KeyR" }, { "label": "S", "command": "KeyS" }, { "label": "T", "command": "KeyT" },
+        { "label": "U", "command": "KeyU" }, { "label": "V", "command": "KeyV" }, { "label": "W", "command": "KeyW" }, { "label": "X", "command": "KeyX" }, { "label": "Y", "command": "KeyY" },
+        { "label": "Z", "command": "KeyZ" }, { "label": "/", "command": "KeySlash" }, { "label": "SP", "command": "KeySpace", "shortcut": " " }, { "label": "OVFY", "command": "KeyOverfly" }, { "label": "CLR", "command": "KeyClear", "shortcut": "Backspace" }
+      ]
+    }
+  ]
+}

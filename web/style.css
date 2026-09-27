@@ -8,6 +8,14 @@
     --live: #4c9a5c;
     --dead: #b4553f;
 
+    /* The MCDU's display colours, by the letter the plugin sends. */
+    --mcdu-white: #f2f2f2;
+    --mcdu-green: #3ee06a;
+    --mcdu-cyan: #33cfff;
+    --mcdu-yellow: #f5e14a;
+    --mcdu-amber: #ff9f1c;
+    --mcdu-magenta: #ff5cf2;
+
     /* Overwritten per bezel: one bezel unit in pixels, so labels scale with
        the panel instead of staying at a fixed size. */
     --unit: 1px;
@@ -172,6 +180,40 @@ h1 {
        definition — filling it keeps the picture true to the device. */
     object-fit: fill;
 }
+
+/* ── Text screen ──────────────────────────────────────────────────────────── */
+
+/* One cell per character, so the columns line up whatever the font's advance
+   width — and the line select keys stay level with the rows they belong to. */
+.text-screen {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    grid-template-rows: repeat(14, 1fr);
+    /* The black margin the unit leaves around its text, in bezel units. */
+    padding: calc(var(--unit) * 20);
+    overflow: hidden;
+    container-type: size;
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font: 500 calc(100cqh / 14 * 0.95) / 1 ui-monospace, Menlo, Consolas, monospace;
+    white-space: pre;
+    color: var(--mcdu-white);
+}
+
+.cell[data-size="s"] {
+    font-size: calc(100cqh / 14 * 0.72);
+}
+
+.cell[data-color="g"] { color: var(--mcdu-green); }
+.cell[data-color="b"] { color: var(--mcdu-cyan); }
+.cell[data-color="y"] { color: var(--mcdu-yellow); }
+.cell[data-color="a"] { color: var(--mcdu-amber); }
+.cell[data-color="m"] { color: var(--mcdu-magenta); }
 
 .control {
     position: absolute;

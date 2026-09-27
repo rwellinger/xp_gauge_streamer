@@ -240,18 +240,15 @@ export function attachKeyboard(bezel) {
 
 // ── Bezel ────────────────────────────────────────────────────────────────────
 
-// Returns the bezel and its screen element; the caller decides what the screen
-// shows, so the renderer stays free of streaming concerns.
-export function renderBezel(definition, press) {
+// The caller hands in the screen node — a streamed picture or a text grid —
+// so the renderer stays free of streaming concerns and only places it.
+export function renderBezel(definition, press, screen) {
     const bezel = document.createElement('div');
     bezel.className = 'bezel notranslate';
     // Belt and braces with the page's notranslate meta: a key says DES, not
     // "of the", whatever the browser thinks the language is.
     bezel.translate = false;
 
-    const screen = document.createElement('img');
-    screen.className = 'screen';
-    screen.alt = `${definition.name} screen`;
     place(screen, definition.screen, definition.size);
 
     // A device may hand out more black margin than it uses. `crop` gives how
@@ -286,7 +283,7 @@ export function renderBezel(definition, press) {
         bezel.append(node);
     }
 
-    return { bezel, screen };
+    return bezel;
 }
 
 // ── Thumbnail ────────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@
 // in particular.
 
 import { attachKeyboard, fitBezel, loadBezel, renderBezel } from '/bezel.js';
+import { createTextScreen } from '/text_screen.js';
 
 const FIRST_RETRY_MS = 500;
 const LONGEST_RETRY_MS = 5000;
@@ -35,8 +36,25 @@ function press(command) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
+// The timestamp forces a fresh request even for the same unit — after a
+// reconnect the old stream is a dead socket, not an image.
+function createPictureScreen(name) {
+    const node = document.createElement('img');
+    node.className = 'screen';
+    node.alt = `${name} screen`;
+
+    return { node, start: () => { node.src = `/stream/${slug}?t=${Date.now()}`; } };
+}
+
+// The plugin says how a unit's screen travels: as a picture of the framebuffer
+// or, for a display X-Plane does not render itself, as text.
+function createScreen(device, definition) {
+    return device.screen === 'text' ? createTextScreen(slug) : createPictureScreen(definition.name);
+}
+
 function showBezel(device, definition) {
-    const { bezel, screen } = renderBezel(definition, press);
+    const screen = createScreen(device, definition);
+    const bezel = renderBezel(definition, press, screen.node);
 
     elements.name.textContent = device.name;
     elements.panel.replaceChildren(bezel);
@@ -47,12 +65,6 @@ function showBezel(device, definition) {
     attachKeyboard(bezel);
 
     return screen;
-}
-
-// The timestamp forces a fresh request even for the same unit — after a
-// reconnect the old stream is a dead socket, not an image.
-function startStream(screen) {
-    screen.src = `/stream/${slug}?t=${Date.now()}`;
 }
 
 function reportProblem(text) {
@@ -69,7 +81,7 @@ function connect(screen) {
 
     socket.addEventListener('open', () => {
         retryDelay = FIRST_RETRY_MS;
-        startStream(screen);
+        screen.start();
         setStatus('live', 'Connected');
     });
 

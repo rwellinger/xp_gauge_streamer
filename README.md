@@ -5,7 +5,8 @@
 Native X-Plane 12 plugin for **macOS, Windows and Linux** that captures the
 default Laminar avionics displays — the GNS430/530 and the airliner CDU — and
 streams them to a web frontend, where they can be operated by click or touch
-instead of via the cockpit popout.
+instead of via the cockpit popout. The ToLiss Airbus MCDU is served too, as
+text read from the aircraft's own datarefs.
 
 ![The GNS 530 on an iPad: the streamed screen in a bezel drawn by the frontend](images/ipad-gns530.jpeg)
 
@@ -64,8 +65,8 @@ name, and whether the loaded aircraft has it. It streams nothing — a Cessna wi
 a GNS530 and a second GNS430 shows `gns530_1` and `gns430_2` as present and the
 rest as absent, a 737 shows its two CDUs and nothing else. Each unit has its own
 page at `/device/<slug>`, with the slugs `gns430_1`, `gns430_2`, `gns530_1`,
-`gns530_2`, `cdu739_1` and `cdu739_2`, so a tablet can bookmark just its own
-screen.
+`gns530_2`, `cdu739_1`, `cdu739_2`, `toliss_mcdu_1` and `toliss_mcdu_2`, so a
+tablet can bookmark just its own screen.
 
 The device page draws the bezel around the stream, laid out like the unit in the
 cockpit. The GNS units are landscape: COM and VLOC volume with their push
@@ -92,11 +93,22 @@ set, so it can do more than the panel in that cockpit. A green CDU screen in a
 3D cockpit is a font texture the aircraft draws from the same datarefs, not a
 different device.
 
-Aircraft that bring their own FMC — ZIBO, ToLiss, most payware — compute and
-draw it themselves and bind no avionics device at all. There is no framebuffer
-to read, so they show as absent and no bezel would help. That is the line this
-plugin draws: it serves the devices X-Plane provides, not what an add-on
-renders on its own.
+Aircraft that bring their own FMC — ZIBO, most payware — compute and draw it
+themselves and bind no avionics device at all. There is no framebuffer to read,
+so they show as absent and no bezel would help. That is the line this plugin
+draws: it serves the devices X-Plane provides, not what an add-on renders on its
+own — with one exception.
+
+**ToLiss MCDU.** ToLiss publishes its MCDU's screen as datarefs, one per line,
+colour and font size, the same ones hardware MCDUs are driven from. The plugin
+reads them while somebody watches, sends the display as a 24×14 text grid over
+`/screen/<slug>`, and the page draws it in the MCDU's colours — sharper than any
+capture and a few hundred bytes per change. The bezel follows the Airbus unit:
+line selects on the screen's data rows, DIR to MCDU MENU with BRT and DIM beside
+them, AIRPORT and the slew arrows over the number pad, letters with `/`, SP,
+OVFY and CLR. The arrow keys, space and Backspace work from a keyboard.
+Developed against the A319; the A320neo, A321 and A340 use the same datarefs
+and commands per unit, but have not been tried.
 
 With one stream open, expect the sim to give up roughly 4–5 % of its frame rate.
 The plugin reads the device's framebuffer back six times a second on X-Plane's
