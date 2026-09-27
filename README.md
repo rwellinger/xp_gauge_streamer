@@ -117,14 +117,17 @@ runs fine and shows nothing until the GPU or APU is on. `/devices` reporting
 | `/`              | Selection page, no stream                              |
 | `/device/<slug>` | One unit in its bezel                                  |
 | `/stream/<slug>` | MJPEG stream of one unit                               |
-| `/devices`       | JSON: slug, type, name, and whether the aircraft has it|
+| `/screen/<slug>` | Server-sent events: the ToLiss MCDU's screen as text   |
+| `/devices`       | JSON: slug, type, name, `screen` (`mjpeg` or `text`), and whether the aircraft has it|
 | `/control`       | WebSocket: `{"device": "gns530_1", "button": "fpl"}`   |
 
 Button names are the suffix of the unit's own command family: `sim/GPS/g430n*_`
 for the GNS units — `fpl`, `menu`, `clr`, `ent`, `cursor`, `zoom_in`, `page_up`,
 … — and `sim/FMS/` or `sim/FMS2/` for the captain's and first officer's CDU —
 `ls_1l`, `exec`, `dep_arr`, `key_A`, `key_7`, … Note the CDU's letter keys are
-upper case: `key_A`, not `key_a`. Only whitelisted names are accepted; anything
+upper case: `key_A`, not `key_a`. The ToLiss MCDUs use `AirbusFBW/MCDU1` and
+`AirbusFBW/MCDU2` — `LSK1L`, `KeyA`, `Key7`, `Fpln`, `DirTo`, `SlewUp`, … spelled
+exactly as ToLiss does. Only whitelisted names are accepted; anything
 else is dropped and logged. Presses are queued and executed on X-Plane's main
 thread, never from the network thread.
 

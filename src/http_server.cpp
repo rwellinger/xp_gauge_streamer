@@ -8,11 +8,12 @@
 
 #include "http_server.hpp"
 
-#include "avionics_capture.hpp"
 #include "command_dispatch.hpp"
+#include "device_presence.hpp"
 #include "device_registry.hpp"
 #include "frame_pipeline.hpp"
 #include "plugin_log.hpp"
+#include "toliss_mcdu_source.hpp"
 
 #include <civetweb.h>
 #include <json.hpp>
@@ -32,6 +33,7 @@ namespace
 {
 
 constexpr char STREAM_URI_PREFIX[]  = "/stream/";
+constexpr char SCREEN_URI_PREFIX[]  = "/screen/";
 constexpr char DEVICE_URI_PREFIX[]  = "/device/";
 constexpr char DEVICES_URI[]        = "/devices";
 constexpr char CONTROL_URI[]        = "/control";
@@ -46,6 +48,10 @@ constexpr char WORKER_THREADS[] = "12";
 // nothing while the GNS screen is static.
 constexpr auto FRAME_POLL_INTERVAL = std::chrono::milliseconds(10);
 
+// A static MCDU page sends nothing, and only a write notices a client that has
+// gone — the comment line keeps the viewer count honest.
+constexpr auto SCREEN_KEEPALIVE_INTERVAL = std::chrono::seconds(5);
+
 mg_context *server = nullptr;
 
 // Kept because /device/<slug> answers from a file rather than civetweb's static
@@ -55,28 +61,33 @@ std::string document_root;
 // Cleared before mg_stop() so open streams leave their loop instead of holding
 // the shutdown until their client disconnects.
 std::atomic<bool> streaming_allowed{false};
-std::atomic<int>  open_streams{0};
 
-// Keeps the viewer count correct however a request ends — the count decides
+// Counted apart: a video viewer costs a framebuffer readback, a text viewer a
+// round of dataref reads, and each count switches only its own work on.
+std::atomic<int> open_streams{0};
+std::atomic<int> open_screens{0};
+
+// Keeps a viewer count correct however a request ends — the count decides
 // whether the plugin captures at all.
 class ViewerRegistration
 {
   public:
-    explicit ViewerRegistration(std::string what) : name(std::move(what))
+    ViewerRegistration(std::string what, std::atomic<int> &viewer_count) : name(std::move(what)), count(viewer_count)
     {
-        log_format("%s: viewer joined (%d total)", name.c_str(), open_streams.fetch_add(1) + 1);
+        log_format("%s: viewer joined (%d total)", name.c_str(), count.fetch_add(1) + 1);
     }
 
-    ~ViewerRegistration() { log_format("%s: viewer left (%d total)", name.c_str(), open_streams.fetch_sub(1) - 1); }
+    ~ViewerRegistration() { log_format("%s: viewer left (%d total)", name.c_str(), count.fetch_sub(1) - 1); }
 
     ViewerRegistration(const ViewerRegistration &)            = delete;
     ViewerRegistration &operator=(const ViewerRegistration &) = delete;
 
   private:
-    std::string name;
+    std::string       name;
+    std::atomic<int> &count;
 };
 
-// Both /stream/<slug> and /device/<slug> carry the slug the same way.
+// /stream/<slug>, /screen/<slug> and /device/<slug> carry the slug the same way.
 std::string_view segment_after_prefix(const char *uri, size_t prefix_length)
 {
     const std::string_view path(uri != nullptr ? uri : "");
@@ -143,16 +154,87 @@ int handle_stream(mg_connection *connection, void *)
     const DeviceDescriptor *device =
         find_device_by_slug(segment_after_prefix(request->local_uri, sizeof(STREAM_URI_PREFIX) - 1));
 
-    if (device == nullptr || !device->enabled)
+    if (device == nullptr || !device->enabled || device->source != ScreenSource::framebuffer)
     {
         mg_send_http_error(connection, 404, "%s", "No stream for this device");
         return 404;
     }
 
-    const ViewerRegistration registration(std::string(device->display_name) + " stream");
+    const ViewerRegistration registration(std::string(device->display_name) + " stream", open_streams);
 
     send_stream_headers(connection);
     stream_frames(connection, device->device_id);
+    return 200;
+}
+
+void send_event_stream_headers(mg_connection *connection)
+{
+    mg_printf(connection, "HTTP/1.1 200 OK\r\n"
+                          "Content-Type: text/event-stream\r\n"
+                          "Cache-Control: no-store\r\n"
+                          "Connection: close\r\n"
+                          "\r\n");
+}
+
+// One server-sent event per screen. The JSON never contains a line break, so a
+// single data line carries it.
+bool send_event(mg_connection *connection, const std::string &json)
+{
+    return mg_write(connection, "data: ", 6) > 0 && mg_write(connection, json.data(), json.size()) > 0 &&
+           mg_write(connection, "\n\n", 2) > 0;
+}
+
+bool send_keepalive(mg_connection *connection) { return mg_write(connection, ":\n\n", 3) > 0; }
+
+// Same pattern as stream_frames: only the newest screen, and only when it
+// changed. EventSource reconnects by itself when this returns.
+void stream_screens(mg_connection *connection, DeviceId device_id)
+{
+    std::string   json;
+    std::uint64_t sequence   = 0;
+    std::uint64_t last_sent  = 0;
+    auto          last_write = std::chrono::steady_clock::now();
+
+    while (streaming_allowed.load())
+    {
+        const auto now = std::chrono::steady_clock::now();
+
+        if (latest_mcdu_screen(device_id, json, sequence) && sequence != last_sent)
+        {
+            if (!send_event(connection, json))
+                return;
+            last_sent  = sequence;
+            last_write = now;
+            continue;
+        }
+
+        if (now - last_write >= SCREEN_KEEPALIVE_INTERVAL)
+        {
+            if (!send_keepalive(connection))
+                return;
+            last_write = now;
+        }
+
+        std::this_thread::sleep_for(FRAME_POLL_INTERVAL);
+    }
+}
+
+int handle_screen(mg_connection *connection, void *)
+{
+    const mg_request_info  *request = mg_get_request_info(connection);
+    const DeviceDescriptor *device =
+        find_device_by_slug(segment_after_prefix(request->local_uri, sizeof(SCREEN_URI_PREFIX) - 1));
+
+    if (device == nullptr || !device->enabled || device->source != ScreenSource::text_datarefs)
+    {
+        mg_send_http_error(connection, 404, "%s", "No screen for this device");
+        return 404;
+    }
+
+    const ViewerRegistration registration(std::string(device->display_name) + " screen", open_screens);
+
+    send_event_stream_headers(connection);
+    stream_screens(connection, device->device_id);
     return 200;
 }
 
@@ -167,6 +249,7 @@ int handle_devices(mg_connection *connection, void *)
         devices.push_back({{"slug", device.slug},
                            {"type", device.type},
                            {"name", device.display_name},
+                           {"screen", device.source == ScreenSource::framebuffer ? "mjpeg" : "text"},
                            {"present", device.enabled && device_is_in_aircraft(device.device_id)}});
     }
 
@@ -268,6 +351,7 @@ bool start_server(const ServerConfig &config)
     }
 
     mg_set_request_handler(server, STREAM_URI_PREFIX, handle_stream, nullptr);
+    mg_set_request_handler(server, SCREEN_URI_PREFIX, handle_screen, nullptr);
     mg_set_request_handler(server, DEVICE_URI_PREFIX, handle_device_page, nullptr);
     mg_set_request_handler(server, DEVICES_URI, handle_devices, nullptr);
     mg_set_websocket_handler(server, CONTROL_URI, on_websocket_connect, nullptr, on_websocket_data, nullptr, nullptr);
@@ -288,6 +372,8 @@ void stop_server()
 }
 
 int active_stream_count() { return open_streams.load(); }
+
+int active_screen_count() { return open_screens.load(); }
 
 bool server_is_running() { return server != nullptr; }
 

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 #include <vector>
 
@@ -18,6 +19,15 @@ namespace xp_gauge_streamer
 // unit tests built from it — never need the X-Plane SDK headers.
 using DeviceId = int;
 
+// Where a device's picture comes from. Laminar's own units are read back from
+// the framebuffer X-Plane renders them into; an add-on that draws its display
+// itself offers no such framebuffer, only its screen text in datarefs.
+enum class ScreenSource : std::uint8_t
+{
+    framebuffer,
+    text_datarefs,
+};
+
 struct DeviceDescriptor
 {
     DeviceId         device_id;
@@ -25,6 +35,7 @@ struct DeviceDescriptor
     std::string_view type;           // model, e.g. "gns430" — picks bezel and button set
     std::string_view display_name;   // shown in the web frontend
     std::string_view command_prefix; // e.g. "sim/GPS/g430n1_"
+    ScreenSource     source;
     bool             enabled;
 };
 

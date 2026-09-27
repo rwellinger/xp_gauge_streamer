@@ -20,8 +20,9 @@ struct ServerConfig
     std::string document_root;
 };
 
-// Starts the embedded HTTP server: static assets from `document_root` plus one
-// MJPEG endpoint per device under /stream/<slug>. False when the port is taken.
+// Starts the embedded HTTP server: static assets from `document_root`, an MJPEG
+// endpoint per framebuffer device under /stream/<slug> and a server-sent event
+// stream per text device under /screen/<slug>. False when the port is taken.
 bool start_server(const ServerConfig &config);
 
 // Ends every open stream and joins civetweb's threads. A civetweb thread still
@@ -30,6 +31,10 @@ void stop_server();
 
 // How many MJPEG streams are being served right now. Safe from any thread.
 int active_stream_count();
+
+// How many text screens (/screen/<slug>) are being served right now. Safe from
+// any thread.
+int active_screen_count();
 
 // False when the server never came up — a taken port is the usual reason.
 bool server_is_running();

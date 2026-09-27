@@ -16,7 +16,7 @@
 namespace xp_gauge_streamer
 {
 
-// Starts one encoder thread per enabled device.
+// Starts one encoder thread per enabled framebuffer device.
 void start_pipeline();
 
 // Stops every encoder thread. Call after stop_capture(), so no draw callback

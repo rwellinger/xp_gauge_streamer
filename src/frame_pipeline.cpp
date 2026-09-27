@@ -85,7 +85,8 @@ void start_pipeline()
 
     for (const DeviceDescriptor &descriptor : all_devices())
     {
-        if (!descriptor.enabled || find_stream(descriptor.device_id) != nullptr)
+        if (descriptor.source != ScreenSource::framebuffer || !descriptor.enabled ||
+            find_stream(descriptor.device_id) != nullptr)
             continue;
 
         auto stream          = std::make_unique<DeviceStream>();

@@ -9,13 +9,13 @@
 #include "avionics_capture.hpp"
 
 #include "capture_schedule.hpp"
+#include "device_presence.hpp"
 #include "gl_entry_points.hpp"
 #include "plugin_log.hpp"
 
 #include <XPLM/XPLMDisplay.h>
 #include <XPLM/XPLMProcessing.h>
 
-#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -79,14 +79,6 @@ bool gl_entry_points_ready()
 
     return gl_entry_points_available;
 }
-
-// One bit per device id, so a civetweb thread can answer "does this aircraft
-// have the unit?" without touching the XPLM API — only the flight loop may.
-std::atomic<unsigned> devices_in_aircraft{0};
-
-// XPLMDeviceID values are a small enumeration; anything beyond the mask's width
-// would need a different carrier than a single lock-free word.
-constexpr DeviceId HIGHEST_MAPPED_DEVICE_ID = 31;
 
 // Held by pointer because each target's address is handed to X-Plane as the
 // callback refcon — a reallocating vector of values would dangle.
@@ -270,6 +262,9 @@ void refresh_capture_registrations()
 {
     for (const DeviceDescriptor &descriptor : all_devices())
     {
+        if (descriptor.source != ScreenSource::framebuffer)
+            continue;
+
         const bool is_registered = find_target(descriptor.device_id) != nullptr;
 
         if (descriptor.enabled && !is_registered)
@@ -299,24 +294,14 @@ void set_readback_enabled(bool enabled)
 
 void refresh_device_presence()
 {
-    unsigned present = 0;
-    for (const std::unique_ptr<CaptureTarget> &target : targets)
+    for (const DeviceDescriptor &descriptor : all_devices())
     {
-        if (target->device_id > HIGHEST_MAPPED_DEVICE_ID || XPLMIsAvionicsBound(target->handle) == 0)
+        if (descriptor.source != ScreenSource::framebuffer)
             continue;
 
-        present |= 1u << static_cast<unsigned>(target->device_id);
+        const CaptureTarget *target = find_target(descriptor.device_id);
+        set_device_present(descriptor.device_id, target != nullptr && XPLMIsAvionicsBound(target->handle) != 0);
     }
-
-    devices_in_aircraft.store(present, std::memory_order_relaxed);
-}
-
-bool device_is_in_aircraft(DeviceId device_id)
-{
-    if (device_id < 0 || device_id > HIGHEST_MAPPED_DEVICE_ID)
-        return false;
-
-    return (devices_in_aircraft.load(std::memory_order_relaxed) & (1u << static_cast<unsigned>(device_id))) != 0;
 }
 
 void stop_capture()
@@ -325,11 +310,11 @@ void stop_capture()
     {
         XPLMUnregisterAvionicsCallbacks(target->handle);
         schedule.forget(target->device_id);
+        set_device_present(target->device_id, false);
     }
     targets.clear();
     frame_sink       = nullptr;
     readback_enabled = false;
-    devices_in_aircraft.store(0, std::memory_order_relaxed);
 }
 
 } // namespace xp_gauge_streamer

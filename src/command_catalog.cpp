@@ -38,6 +38,10 @@ struct ButtonSet
 // The list is the full family, not what one bezel draws: keys without a 737
 // counterpart stay in so a later Airbus or AW139 layout needs a JSON file and
 // no code.
+//
+// The ToLiss MCDU's AirbusFBW/MCDU<n> family is taken whole from the installed
+// A319 except UndockMCDU<n>, which sits outside the prefix anyway. Its letter
+// keys are KeyA to KeyZ, again case-sensitive.
 const std::vector<ButtonSet> &button_sets()
 {
     static const std::vector<ButtonSet> sets = []
@@ -66,8 +70,21 @@ const std::vector<ButtonSet> &button_sets()
             "perf",       "fuel_pred", "data",      "menu",      "sec_fpln", "atc_comm",   "prev",      "next",
         };
 
-        return std::vector<ButtonSet>{
-            {"gns430", std::move(gns430)}, {"gns530", std::move(gns530)}, {"cdu739", std::move(cdu739)}};
+        std::vector<std::string_view> toliss_mcdu = {
+            "LSK1L",     "LSK2L",   "LSK3L", "LSK4L",      "LSK5L",   "LSK6L",    "LSK1R",    "LSK2R",    "LSK3R",
+            "LSK4R",     "LSK5R",   "LSK6R", "KeyA",       "KeyB",    "KeyC",     "KeyD",     "KeyE",     "KeyF",
+            "KeyG",      "KeyH",    "KeyI",  "KeyJ",       "KeyK",    "KeyL",     "KeyM",     "KeyN",     "KeyO",
+            "KeyP",      "KeyQ",    "KeyR",  "KeyS",       "KeyT",    "KeyU",     "KeyV",     "KeyW",     "KeyX",
+            "KeyY",      "KeyZ",    "Key0",  "Key1",       "Key2",    "Key3",     "Key4",     "Key5",     "Key6",
+            "Key7",      "Key8",    "Key9",  "KeyDecimal", "KeyPM",   "KeySlash", "KeySpace", "KeyClear", "KeyOverfly",
+            "KeyBright", "KeyDim",  "DirTo", "Prog",       "Perf",    "Init",     "Data",     "Fpln",     "RadNav",
+            "FuelPred",  "SecFpln", "ATC",   "Menu",       "Airport", "SlewUp",   "SlewDown", "SlewLeft", "SlewRight",
+        };
+
+        return std::vector<ButtonSet>{{"gns430", std::move(gns430)},
+                                      {"gns530", std::move(gns530)},
+                                      {"cdu739", std::move(cdu739)},
+                                      {"toliss_mcdu", std::move(toliss_mcdu)}};
     }();
 
     return sets;

@@ -62,6 +62,35 @@ TEST_CASE("the type names the model, the slug the instance", "[device_registry]"
     CHECK(find_device_by_slug("gns530_2")->type == "gns530");
     CHECK(find_device_by_slug("cdu739_1")->type == "cdu739");
     CHECK(find_device_by_slug("cdu739_2")->type == "cdu739");
+    CHECK(find_device_by_slug("toliss_mcdu_1")->type == "toliss_mcdu");
+    CHECK(find_device_by_slug("toliss_mcdu_2")->type == "toliss_mcdu");
+}
+
+TEST_CASE("the ToLiss MCDUs are text devices outside the SDK's id range", "[device_registry]")
+{
+    const DeviceDescriptor *captain       = find_device_by_slug("toliss_mcdu_1");
+    const DeviceDescriptor *first_officer = find_device_by_slug("toliss_mcdu_2");
+
+    REQUIRE(captain != nullptr);
+    REQUIRE(first_officer != nullptr);
+
+    CHECK(captain->source == ScreenSource::text_datarefs);
+    CHECK(first_officer->source == ScreenSource::text_datarefs);
+    CHECK(captain->command_prefix == "AirbusFBW/MCDU1");
+    CHECK(first_officer->command_prefix == "AirbusFBW/MCDU2");
+
+    // XPLMDeviceID 18 and 19 are X-Plane's own MCDU, not the ToLiss one.
+    CHECK(captain->device_id >= 100);
+    CHECK(first_officer->device_id >= 100);
+}
+
+TEST_CASE("Laminar's units are read from the framebuffer", "[device_registry]")
+{
+    for (const DeviceDescriptor &device : all_devices())
+    {
+        if (device.type != "toliss_mcdu")
+            CHECK(device.source == ScreenSource::framebuffer);
+    }
 }
 
 TEST_CASE("the CDU units carry their own command family", "[device_registry]")
