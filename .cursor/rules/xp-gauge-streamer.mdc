@@ -41,7 +41,7 @@ Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
 - **`plugin_ui`** — Dear ImGui settings window
 - **`settings`** — `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
 
-**Frontend:** plain `web/` (no framework). Bezels in `web/bezels/<type>.json`.
+**Frontend:** plain `web/` (no framework). Bezels in `web/bezels/<type>.json`. Text devices render via `text_screen.js` (SSE on `/screen/<slug>`).
 
 **Threading:** capture + XPLM on main thread; encode + HTTP off-thread; presses only via `press_button`.
 

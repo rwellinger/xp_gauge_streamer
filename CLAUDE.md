@@ -73,7 +73,10 @@ X-Plane's XPLM API; network threads must never call XPLM.
 Bezel layouts live in `web/bezels/<type>.json` (`button`, `rocker`, `knob`,
 `grid`), with optional `labelSize`, `\n` line breaks in labels, `crop` to drop
 unused black margin from a capture, and `shortcut` to bind a physical key
-(single-character captions bind themselves).
+(single-character captions bind themselves). The screen node comes from
+`device.js`: an `<img>` on `/stream/<slug>` for framebuffer devices, or
+`text_screen.js` — a 24×14 cell grid fed by `EventSource` on `/screen/<slug>` —
+when `/devices` reports `"screen": "text"`.
 
 **Threading invariant.** Capture and XPLM calls stay on the main thread. Encoding
 and HTTP run off-thread. Button presses cross that boundary only via
