@@ -116,3 +116,22 @@ TEST_CASE("the ToLiss keys are case-sensitive", "[command_catalog]")
     CHECK(command_name("toliss_mcdu_1", "lsk1l").empty());
     CHECK(command_name("toliss_mcdu_1", "key_A").empty());
 }
+
+TEST_CASE("the Zibo FMCs draw from their unit's laminar/B738 family", "[command_catalog]")
+{
+    CHECK(command_name("zibo_fmc_1", "1L") == "laminar/B738/button/fmc1_1L");
+    CHECK(command_name("zibo_fmc_2", "6R") == "laminar/B738/button/fmc2_6R");
+    CHECK(command_name("zibo_fmc_1", "A") == "laminar/B738/button/fmc1_A");
+    CHECK(command_name("zibo_fmc_2", "exec") == "laminar/B738/button/fmc2_exec");
+
+    // 12 line selects, 26 letters, 10 digits, 21 editing and page keys —
+    // every laminar/B738/button/fmc1_ command of the Zibo 737-800.
+    CHECK(known_buttons("zibo_fmc").size() == 69);
+}
+
+TEST_CASE("the Zibo keys are case-sensitive", "[command_catalog]")
+{
+    CHECK(command_name("zibo_fmc_1", "a").empty());
+    CHECK(command_name("zibo_fmc_1", "1l").empty());
+    CHECK(command_name("zibo_fmc_1", "CLR").empty());
+}

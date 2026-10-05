@@ -35,6 +35,7 @@ struct DeviceDescriptor
     std::string_view type;           // model, e.g. "gns430" — picks bezel and button set
     std::string_view display_name;   // shown in the web frontend
     std::string_view command_prefix; // e.g. "sim/GPS/g430n1_"
+    std::string_view dataref_prefix; // screen text datarefs; empty for a framebuffer device
     ScreenSource     source;
     bool             enabled;
 };

@@ -42,6 +42,10 @@ struct ButtonSet
 // The ToLiss MCDU's AirbusFBW/MCDU<n> family is taken whole from the installed
 // A319 except UndockMCDU<n>, which sits outside the prefix anyway. Its letter
 // keys are KeyA to KeyZ, again case-sensitive.
+//
+// The Zibo 737's laminar/B738/button/fmc<n>_ family is taken whole from the
+// installed aircraft: 69 keys, letters in upper case (fmc1_A), the rest in
+// lower case (fmc1_clr) — line selects are digits first (fmc1_1L).
 const std::vector<ButtonSet> &button_sets()
 {
     static const std::vector<ButtonSet> sets = []
@@ -81,10 +85,21 @@ const std::vector<ButtonSet> &button_sets()
             "FuelPred",  "SecFpln", "ATC",   "Menu",       "Airport", "SlewUp",   "SlewDown", "SlewLeft", "SlewRight",
         };
 
+        std::vector<std::string_view> zibo_fmc = {
+            "1L",    "2L",   "3L",  "4L",  "5L",   "6L",        "1R",        "2R",       "3R",     "4R",
+            "5R",    "6R",   "A",   "B",   "C",    "D",         "E",         "F",        "G",      "H",
+            "I",     "J",    "K",   "L",   "M",    "N",         "O",         "P",        "Q",      "R",
+            "S",     "T",    "U",   "V",   "W",    "X",         "Y",         "Z",        "0",      "1",
+            "2",     "3",    "4",   "5",   "6",    "7",         "8",         "9",        "period", "minus",
+            "slash", "SP",   "clr", "del", "exec", "prev_page", "next_page", "init_ref", "menu",   "n1_lim",
+            "rte",   "legs", "fix", "clb", "crz",  "des",       "dep_app",   "hold",     "prog",
+        };
+
         return std::vector<ButtonSet>{{"gns430", std::move(gns430)},
                                       {"gns530", std::move(gns530)},
                                       {"cdu739", std::move(cdu739)},
-                                      {"toliss_mcdu", std::move(toliss_mcdu)}};
+                                      {"toliss_mcdu", std::move(toliss_mcdu)},
+                                      {"zibo_fmc", std::move(zibo_fmc)}};
     }();
 
     return sets;

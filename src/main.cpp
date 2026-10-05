@@ -14,7 +14,7 @@
 #include "plugin_paths.hpp"
 #include "plugin_ui.hpp"
 #include "settings.hpp"
-#include "toliss_mcdu_source.hpp"
+#include "text_screen_source.hpp"
 
 #include <XPLM/XPLMPlugin.h>
 #include <XPLM/XPLMProcessing.h>
@@ -33,8 +33,8 @@ namespace
 constexpr char PLUGIN_NAME[]      = "Welly's Gauge Streamer";
 constexpr char PLUGIN_SIGNATURE[] = "ch.thwelly.xp_gauge_streamer";
 constexpr char PLUGIN_DESCRIPTION[] =
-    "Streams the GNS430/530, airliner CDU and ToLiss MCDU displays to a web frontend and forwards clicks back "
-    "into the sim.";
+    "Streams the GNS430/530, airliner CDU, ToLiss MCDU and Zibo 737 FMC displays to a web frontend and forwards "
+    "clicks back into the sim.";
 
 // X-Plane's plugin API hands out fixed 256-byte buffers for name/signature/description.
 constexpr size_t XPLM_STRING_BUFFER_SIZE = 256;
@@ -68,7 +68,7 @@ float follow_viewers(float, float, int, void *)
         log_format("capture %s", wanted ? "started — a viewer connected" : "stopped — no viewers left");
     }
 
-    set_mcdu_reading_enabled(active_screen_count() > 0);
+    set_text_screen_reading_enabled(active_screen_count() > 0);
 
     return VIEWER_CHECK_INTERVAL_SECONDS;
 }
@@ -108,7 +108,7 @@ PLUGIN_API int XPluginEnable(void)
     start_dispatch();
     start_pipeline();
     start_capture(publish_frame);
-    start_mcdu_source();
+    start_text_screen_source();
     start_ui(devices_changed);
 
     const Settings    &settings = current_settings();
@@ -130,7 +130,7 @@ PLUGIN_API void XPluginDisable(void)
     stop_dispatch();
     stop_ui();
     stop_capture();
-    stop_mcdu_source();
+    stop_text_screen_source();
     stop_pipeline();
     streaming = false;
 }

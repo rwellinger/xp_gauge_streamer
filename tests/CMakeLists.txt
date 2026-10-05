@@ -16,7 +16,8 @@ add_executable(xp_gauge_streamer_tests
     ${CMAKE_SOURCE_DIR}/src/frame_buffer.cpp
     ${CMAKE_SOURCE_DIR}/src/jpeg_encoder.cpp
     ${CMAKE_SOURCE_DIR}/src/settings.cpp
-    ${CMAKE_SOURCE_DIR}/src/toliss_mcdu_screen.cpp
+    ${CMAKE_SOURCE_DIR}/src/text_screen.cpp
+    ${CMAKE_SOURCE_DIR}/src/text_screen_formats.cpp
     test_smoke.cpp
     test_capture_schedule.cpp
     test_command_catalog.cpp
@@ -25,7 +26,7 @@ add_executable(xp_gauge_streamer_tests
     test_frame_buffer.cpp
     test_jpeg_encoder.cpp
     test_settings.cpp
-    test_toliss_mcdu_screen.cpp
+    test_text_screen.cpp
 )
 
 target_include_directories(xp_gauge_streamer_tests PRIVATE

@@ -6,11 +6,11 @@
  * project root for full license information.
  */
 
-#include "toliss_mcdu_source.hpp"
+#include "text_screen_source.hpp"
 
 #include "device_presence.hpp"
 #include "plugin_log.hpp"
-#include "toliss_mcdu_screen.hpp"
+#include "text_screen_formats.hpp"
 
 #include <XPLM/XPLMDataAccess.h>
 #include <XPLM/XPLMProcessing.h>
@@ -30,7 +30,8 @@ namespace
 constexpr float PRESENCE_INTERVAL_SECONDS = 1.0f;
 
 // Keys typed on a tablet should echo in the scratchpad without a noticeable
-// lag. Reading one unit is about 150 short dataref copies.
+// lag. Reading one unit is at most 150 short dataref copies (ToLiss; the Zibo
+// needs 57).
 constexpr float READ_INTERVAL_SECONDS = 0.1f;
 
 // A layer holds 24 columns and a NUL; the slack costs nothing.
@@ -38,11 +39,12 @@ constexpr int LAYER_BUFFER_SIZE = 64;
 
 struct Unit
 {
-    DeviceId    device_id;
-    std::string dataref_prefix;
-    std::string display_name;
+    DeviceId            device_id;
+    std::string         dataref_prefix;
+    std::string         display_name;
+    const ScreenFormat *format;
 
-    // Parallel to toliss_mcdu_layers(); empty while the aircraft offers none.
+    // Parallel to format->layers; empty while the aircraft offers none.
     // Main thread only.
     std::vector<XPLMDataRef> layers;
     bool                     present = false;
@@ -68,7 +70,7 @@ bool bind_layers(Unit &unit)
         return true;
 
     unit.layers.clear();
-    for (const McduLayer &layer : toliss_mcdu_layers())
+    for (const ScreenLayer &layer : unit.format->layers)
     {
         XPLMDataRef dataref = XPLMFindDataRef((unit.dataref_prefix + layer.suffix).c_str());
         if (dataref == nullptr)
@@ -84,9 +86,9 @@ bool bind_layers(Unit &unit)
 
 std::string read_screen(const Unit &unit)
 {
-    const std::vector<McduLayer> &layers = toliss_mcdu_layers();
-    McduScreen                    screen;
-    char                          buffer[LAYER_BUFFER_SIZE];
+    const std::vector<ScreenLayer> &layers = unit.format->layers;
+    TextScreen                      screen(*unit.format);
+    char                            buffer[LAYER_BUFFER_SIZE];
 
     for (size_t index = 0; index < layers.size(); ++index)
     {
@@ -144,20 +146,22 @@ Unit *find_unit(DeviceId device_id)
 
 } // namespace
 
-void start_mcdu_source()
+void start_text_screen_source()
 {
     if (!units.empty())
         return;
 
     for (const DeviceDescriptor &device : all_devices())
     {
-        if (device.source != ScreenSource::text_datarefs)
+        const ScreenFormat *format = screen_format_for(device.type);
+        if (device.source != ScreenSource::text_datarefs || format == nullptr)
             continue;
 
         auto unit            = std::make_unique<Unit>();
         unit->device_id      = device.device_id;
-        unit->dataref_prefix = std::string(device.command_prefix);
+        unit->dataref_prefix = std::string(device.dataref_prefix);
         unit->display_name   = std::string(device.display_name);
+        unit->format         = format;
         const std::lock_guard<std::mutex> lock(screens_mutex);
         units.push_back(std::move(unit));
     }
@@ -165,7 +169,7 @@ void start_mcdu_source()
     XPLMRegisterFlightLoopCallback(watch_units, PRESENCE_INTERVAL_SECONDS, nullptr);
 }
 
-void stop_mcdu_source()
+void stop_text_screen_source()
 {
     XPLMUnregisterFlightLoopCallback(watch_units, nullptr);
 
@@ -177,13 +181,13 @@ void stop_mcdu_source()
     reading_enabled = false;
 }
 
-void set_mcdu_reading_enabled(bool enabled)
+void set_text_screen_reading_enabled(bool enabled)
 {
     if (enabled == reading_enabled)
         return;
 
     reading_enabled = enabled;
-    log_format("MCDU screen reading %s", enabled ? "started" : "stopped");
+    log_format("text screen reading %s", enabled ? "started" : "stopped");
 
     // Waiting out the presence interval would leave a new viewer staring at
     // an empty screen for up to a second.
@@ -191,7 +195,7 @@ void set_mcdu_reading_enabled(bool enabled)
         XPLMSetFlightLoopCallbackInterval(watch_units, READ_INTERVAL_SECONDS, 1, nullptr);
 }
 
-bool latest_mcdu_screen(DeviceId device_id, std::string &json, std::uint64_t &sequence)
+bool latest_text_screen(DeviceId device_id, std::string &json, std::uint64_t &sequence)
 {
     const std::lock_guard<std::mutex> lock(screens_mutex);
 

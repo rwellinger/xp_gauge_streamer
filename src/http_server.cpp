@@ -13,7 +13,7 @@
 #include "device_registry.hpp"
 #include "frame_pipeline.hpp"
 #include "plugin_log.hpp"
-#include "toliss_mcdu_source.hpp"
+#include "text_screen_source.hpp"
 
 #include <civetweb.h>
 #include <json.hpp>
@@ -48,7 +48,7 @@ constexpr char WORKER_THREADS[] = "12";
 // nothing while the GNS screen is static.
 constexpr auto FRAME_POLL_INTERVAL = std::chrono::milliseconds(10);
 
-// A static MCDU page sends nothing, and only a write notices a client that has
+// A static MCDU or FMC page sends nothing, and only a write notices a client that has
 // gone — the comment line keeps the viewer count honest.
 constexpr auto SCREEN_KEEPALIVE_INTERVAL = std::chrono::seconds(5);
 
@@ -199,7 +199,7 @@ void stream_screens(mg_connection *connection, DeviceId device_id)
     {
         const auto now = std::chrono::steady_clock::now();
 
-        if (latest_mcdu_screen(device_id, json, sequence) && sequence != last_sent)
+        if (latest_text_screen(device_id, json, sequence) && sequence != last_sent)
         {
             if (!send_event(connection, json))
                 return;
