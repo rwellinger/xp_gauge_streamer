@@ -175,7 +175,7 @@ the aircraft's panel: white, green, magenta, cyan titles and inverse white.
 
 | Aircraft | Status |
 |---|---|
-| Zibo 737-800 | screen and keys verified via the X-Plane Web API; in-sim test pending |
+| Zibo 737-800 | tested — screen, keys |
 
 Keys and screen sit under different prefixes, both named after the unit:
 `laminar/B738/button/fmc1_…` and `laminar/B738/fmc1/…` for the captain, `fmc2`
