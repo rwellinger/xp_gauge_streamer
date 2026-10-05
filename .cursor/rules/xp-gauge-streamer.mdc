@@ -30,9 +30,9 @@ Validate the plugin in X-Plane 12. Unit tests cover domain logic only.
 
 Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
 
-- **`main.cpp`** — Entry points; `follow_viewers` enables readback / MCDU reading only while viewers are open
+- **`main.cpp`** — Entry points; `follow_viewers` enables readback / screen text reading only while viewers are open
 - **`avionics_capture`** — Draw callbacks for framebuffer devices; raw RGB on main thread; `set_readback_enabled`
-- **`toliss_mcdu_source`** — Reads ToLiss `AirbusFBW/MCDU<n>` screen datarefs on main thread; `toliss_mcdu_screen` (SDK-free) builds the 24×14 grid
+- **`text_screen_source`** — Reads ToLiss `AirbusFBW/MCDU<n>` and Zibo `laminar/B738/fmc<n>/` screen datarefs on main thread; `text_screen` (SDK-free) builds the 24×14 grid, `text_screen_formats` (SDK-free) holds each aircraft's layers and glyph substitutions
 - **`device_presence`** — Which devices the loaded aircraft has; thread-safe
 - **`frame_pipeline`** — Per-device encoder threads (libjpeg-turbo); `publish_frame` / `latest_jpeg`
 - **`http_server`** — civetweb: static `web/`, `/stream/<slug>` (MJPEG), `/screen/<slug>` (SSE text), `/devices`, `/control` (no auth)

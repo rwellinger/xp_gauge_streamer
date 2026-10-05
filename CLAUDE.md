@@ -9,8 +9,9 @@ content from [`.cursor/rules/xp-gauge-streamer.mdc`](.cursor/rules/xp-gauge-stre
 X-Plane 12 plugin for **macOS (arm64 only), Windows x64 and Linux x64**. It captures the
 default Laminar avionics displays — the GNS430/530 and the airliner CDU — streams
 MJPEG to a browser frontend, and forwards button/knob presses back into the sim
-over a WebSocket. The ToLiss Airbus MCDU, which X-Plane does not render itself,
-is read from the aircraft's datarefs and sent as text instead.
+over a WebSocket. The ToLiss Airbus MCDU and the Zibo 737 FMC, which X-Plane
+does not render itself, are read from the aircraft's datarefs and sent as text
+instead.
 
 ## Commands
 
@@ -34,9 +35,9 @@ Everything lives in the `xp_gauge_streamer` namespace. Modules coordinate throug
 X-Plane's XPLM API; network threads must never call XPLM.
 
 - **`main.cpp`** — Plugin entry points (`XPluginStart` / `Stop` / `Enable` /
-  `Disable`). Starts capture, pipeline, MCDU source, HTTP server, and command
+  `Disable`). Starts capture, pipeline, text screen source, HTTP server, and command
   dispatch. Flight loop `follow_viewers` enables framebuffer readback only while
-  `active_stream_count() > 0`, and MCDU text reading only while
+  `active_stream_count() > 0`, and screen text reading only while
   `active_screen_count() > 0`.
 - **`avionics_capture`** — Registers draw callbacks per framebuffer device;
   copies raw RGB (bottom-up) on the main thread into a `FrameSink`. Expensive readback is
@@ -44,11 +45,13 @@ X-Plane's XPLM API; network threads must never call XPLM.
 - **`frame_pipeline`** — One encoder thread per enabled device; JPEG via
   libjpeg-turbo. `publish_frame` copies and returns; `latest_jpeg` serves the
   newest encoded frame to the HTTP layer.
-- **`toliss_mcdu_source`** — ToLiss draws its MCDU itself, so there is no
-  framebuffer to read: a flight loop reads the screen text from the
-  `AirbusFBW/MCDU<n>…` datarefs (re-binding after each aircraft load) and keeps
-  the newest screen as JSON. **`toliss_mcdu_screen`** (SDK-free) turns the
-  per-line, per-colour layers into a 24×14 grid and maps the symbol codes.
+- **`text_screen_source`** — ToLiss and Zibo draw their CDU themselves, so
+  there is no framebuffer to read: a flight loop reads the screen text from the
+  aircraft's datarefs (`AirbusFBW/MCDU<n>…`, `laminar/B738/fmc<n>/…`,
+  re-binding after each aircraft load) and keeps the newest screen as JSON.
+  **`text_screen`** (SDK-free) paints layers into a 24×14 grid;
+  **`text_screen_formats`** (SDK-free) holds each aircraft's layer table and
+  glyph substitutions.
 - **`device_presence`** — Which devices the loaded aircraft has; each source
   reports its own from the main thread, any thread reads.
 - **`http_server`** — Embedded civetweb: static `web/`, MJPEG `/stream/<slug>`,
@@ -63,8 +66,10 @@ X-Plane's XPLM API; network threads must never call XPLM.
   tests can link it. The command prefix follows the unit, not the model:
   `sim/GPS/g430n1_` and `sim/GPS/g430n2_` for the GNS pair, `sim/FMS/` and
   `sim/FMS2/` for the CDUs, `AirbusFBW/MCDU1`/`2` for the ToLiss family (A319,
-  A320neo, A321, A340 — developed against the A319). Devices unknown to X-Plane
-  take ids from 100 up.
+  A320neo, A321, A340 — developed against the A319), `laminar/B738/button/fmc1_`
+  /`fmc2_` for the Zibo 737. Text devices also carry a `dataref_prefix` — the
+  same as the command prefix for ToLiss, `laminar/B738/fmc<n>/` for the Zibo.
+  Devices unknown to X-Plane take ids from 100 up.
 - **`plugin_ui`** — Dear ImGui settings window (address, port, device presence).
 - **`settings`** — Reads/writes `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
   so updates do not wipe user config.

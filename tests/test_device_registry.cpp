@@ -64,6 +64,8 @@ TEST_CASE("the type names the model, the slug the instance", "[device_registry]"
     CHECK(find_device_by_slug("cdu739_2")->type == "cdu739");
     CHECK(find_device_by_slug("toliss_mcdu_1")->type == "toliss_mcdu");
     CHECK(find_device_by_slug("toliss_mcdu_2")->type == "toliss_mcdu");
+    CHECK(find_device_by_slug("zibo_fmc_1")->type == "zibo_fmc");
+    CHECK(find_device_by_slug("zibo_fmc_2")->type == "zibo_fmc");
 }
 
 TEST_CASE("the ToLiss MCDUs are text devices outside the SDK's id range", "[device_registry]")
@@ -78,8 +80,28 @@ TEST_CASE("the ToLiss MCDUs are text devices outside the SDK's id range", "[devi
     CHECK(first_officer->source == ScreenSource::text_datarefs);
     CHECK(captain->command_prefix == "AirbusFBW/MCDU1");
     CHECK(first_officer->command_prefix == "AirbusFBW/MCDU2");
+    CHECK(captain->dataref_prefix == "AirbusFBW/MCDU1");
+    CHECK(first_officer->dataref_prefix == "AirbusFBW/MCDU2");
 
     // XPLMDeviceID 18 and 19 are X-Plane's own MCDU, not the ToLiss one.
+    CHECK(captain->device_id >= 100);
+    CHECK(first_officer->device_id >= 100);
+}
+
+TEST_CASE("the Zibo FMCs keep keys and screen under different prefixes", "[device_registry]")
+{
+    const DeviceDescriptor *captain       = find_device_by_slug("zibo_fmc_1");
+    const DeviceDescriptor *first_officer = find_device_by_slug("zibo_fmc_2");
+
+    REQUIRE(captain != nullptr);
+    REQUIRE(first_officer != nullptr);
+
+    CHECK(captain->source == ScreenSource::text_datarefs);
+    CHECK(first_officer->source == ScreenSource::text_datarefs);
+    CHECK(captain->command_prefix == "laminar/B738/button/fmc1_");
+    CHECK(first_officer->command_prefix == "laminar/B738/button/fmc2_");
+    CHECK(captain->dataref_prefix == "laminar/B738/fmc1/");
+    CHECK(first_officer->dataref_prefix == "laminar/B738/fmc2/");
     CHECK(captain->device_id >= 100);
     CHECK(first_officer->device_id >= 100);
 }
@@ -88,8 +110,10 @@ TEST_CASE("Laminar's units are read from the framebuffer", "[device_registry]")
 {
     for (const DeviceDescriptor &device : all_devices())
     {
-        if (device.type != "toliss_mcdu")
-            CHECK(device.source == ScreenSource::framebuffer);
+        if (device.type == "toliss_mcdu" || device.type == "zibo_fmc")
+            continue;
+        CHECK(device.source == ScreenSource::framebuffer);
+        CHECK(device.dataref_prefix.empty());
     }
 }
 

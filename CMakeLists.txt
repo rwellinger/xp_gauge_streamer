@@ -180,8 +180,9 @@ add_library(xp_gauge_streamer MODULE
     src/plugin_paths.cpp
     src/plugin_ui.cpp
     src/settings.cpp
-    src/toliss_mcdu_screen.cpp
-    src/toliss_mcdu_source.cpp
+    src/text_screen.cpp
+    src/text_screen_formats.cpp
+    src/text_screen_source.cpp
     ${IMGUI_SOURCES}
 )
 

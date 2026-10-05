@@ -8,7 +8,7 @@
     --live: #4c9a5c;
     --dead: #b4553f;
 
-    /* The MCDU's display colours, by the letter the plugin sends. */
+    /* The MCDU's and FMC's display colours, by the letter the plugin sends. */
     --mcdu-white: #f2f2f2;
     --mcdu-green: #3ee06a;
     --mcdu-cyan: #33cfff;
@@ -214,6 +214,12 @@ h1 {
 .cell[data-color="y"] { color: var(--mcdu-yellow); }
 .cell[data-color="a"] { color: var(--mcdu-amber); }
 .cell[data-color="m"] { color: var(--mcdu-magenta); }
+
+/* Inverse video, as the 737 FMC highlights a selected option. */
+.cell[data-color="i"] {
+    background: var(--mcdu-white);
+    color: #000;
+}
 
 .control {
     position: absolute;

@@ -1,7 +1,8 @@
 'use strict';
 
 // A screen the plugin sends as text rather than as a picture — the ToLiss
-// MCDU, which X-Plane never renders into a framebuffer of its own. Every event
+// MCDU or the Zibo 737 FMC, which X-Plane never renders into a framebuffer of
+// its own. Every event
 // on /screen/<slug> carries the whole display: one entry per row with a
 // character, a colour letter and a size letter per column.
 

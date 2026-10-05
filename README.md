@@ -5,8 +5,8 @@
 Native X-Plane 12 plugin for **macOS, Windows and Linux** that captures the
 default Laminar avionics displays — the GNS430/530 and the airliner CDU — and
 streams them to a web frontend, where they can be operated by click or touch
-instead of via the cockpit popout. The ToLiss Airbus MCDU is served too, as
-text read from the aircraft's own datarefs.
+instead of via the cockpit popout. The ToLiss Airbus MCDU and the Zibo 737 FMC
+are served too, as text read from the aircraft's own datarefs.
 
 ![The GNS 530 on an iPad: the streamed screen in a bezel drawn by the frontend](images/ipad-gns530.jpeg)
 
@@ -19,6 +19,7 @@ operate the units in the sim.
 - [Why Gauge Streamer?](#why-gauge-streamer)
 - [Watching the stream](#watching-the-stream)
 - [ToLiss MCDU](#toliss-mcdu)
+- [Zibo 737 FMC](#zibo-737-fmc)
 - [Endpoints](#endpoints)
 - [Adding a device type](#adding-a-device-type)
 - [Security](#security)
@@ -55,7 +56,7 @@ are welcome; a green build is not a promise.
 
 - **Operate the unit from a tablet.** Click and touch the bezel in the browser instead of hunting for the cockpit popout. A CDU in particular is a thing you type on, which a tablet does better than a popout window.
 - **Capture only while someone watches.** With no open stream, the plugin costs X-Plane nothing.
-- **Text where the aircraft offers it.** The ToLiss MCDU arrives as characters rather than pixels — sharp at any size and next to free for the sim.
+- **Text where the aircraft offers it.** The ToLiss MCDU and the Zibo FMC arrive as characters rather than pixels — sharp at any size and next to free for the sim.
 - **Bezel is drawn, not captured.** X-Plane hands out the screen only — the frontend draws the frame, keys, and knobs around it.
 - **Reconnects on its own.** After an X-Plane restart or a WLAN dropout, the page reconnects; a dead frontend that looks alive is worse in flight than a visible error.
 - **Extensible by data.** A new device type is a bezel JSON plus registry and whitelist entries — no renderer change.
@@ -67,8 +68,8 @@ name, and whether the loaded aircraft has it. It streams nothing — a Cessna wi
 a GNS530 and a second GNS430 shows `gns530_1` and `gns430_2` as present and the
 rest as absent, a 737 shows its two CDUs and nothing else. Each unit has its own
 page at `/device/<slug>`, with the slugs `gns430_1`, `gns430_2`, `gns530_1`,
-`gns530_2`, `cdu739_1`, `cdu739_2`, `toliss_mcdu_1` and `toliss_mcdu_2`, so a
-tablet can bookmark just its own screen.
+`gns530_2`, `cdu739_1`, `cdu739_2`, `toliss_mcdu_1`, `toliss_mcdu_2`,
+`zibo_fmc_1` and `zibo_fmc_2`, so a tablet can bookmark just its own screen.
 
 The device page draws the bezel around the stream, laid out like the unit in the
 cockpit. The GNS units are landscape: COM and VLOC volume with their push
@@ -95,19 +96,20 @@ set, so it can do more than the panel in that cockpit. A green CDU screen in a
 3D cockpit is a font texture the aircraft draws from the same datarefs, not a
 different device.
 
-Aircraft that bring their own FMC — ZIBO, most payware — compute and draw it
+Aircraft that bring their own FMC — most payware — compute and draw it
 themselves and bind no avionics device at all. There is no framebuffer to read,
 so they show as absent and no bezel would help. That is the line this plugin
 draws: it serves the devices X-Plane provides, not what an add-on renders on its
-own — with one exception, the [ToLiss MCDU](#toliss-mcdu).
+own — with two exceptions that publish their screen as text, the
+[ToLiss MCDU](#toliss-mcdu) and the [Zibo 737 FMC](#zibo-737-fmc).
 
 With one stream open, expect the sim to give up roughly 4–5 % of its frame rate.
 The plugin reads the device's framebuffer back six times a second on X-Plane's
 main thread. Cost does not depend on monitor resolution — the device screen is
 read at its own fixed size — but a second open stream adds its own share. Close
 the tab and the cost goes away. A CDU screen is the cheaper one: at 300×330 it
-is about a third of a GNS530's pixels. The ToLiss MCDU reads no framebuffer at
-all and costs next to nothing.
+is about a third of a GNS530's pixels. The ToLiss MCDU and the Zibo FMC read no
+framebuffer at all and cost next to nothing.
 
 **A black CDU screen is usually an electrical problem, not a streaming one.** The
 unit only draws when the aircraft has power, so on a cold and dark 737 the stream
@@ -156,6 +158,35 @@ themselves, the arrow keys slew, space is SP and Backspace is CLR.
 unit, the ToLiss MCDU needs electrical power to show anything, while `/devices`
 reports it as present as soon as the aircraft is loaded.
 
+## Zibo 737 FMC
+
+The Zibo 737-800 computes and draws its FMC in its own scripts, bound to no
+avionics device — the default `cdu739` units show as absent in it. Like ToLiss,
+it publishes the screen as text: `laminar/B738/fmc1/Line03_G` is the green,
+large text of the third data line, `Line03_X` the small label above it,
+`Line_entry` the scratchpad. The plugin reads those 57 datarefs per unit into
+the same 24×14 grid as the MCDU, ten times a second while somebody watches.
+
+The 737's fonts reuse two ASCII characters, which the page translates: a
+backtick is the degree sign, an asterisk the box of a mandatory entry — except
+in a highlighted field, where it is a lit blank (`DES*NOW` reads DES NOW in
+inverse video). The colours come from the font each dataref is drawn with in
+the aircraft's panel: white, green, magenta, cyan titles and inverse white.
+
+| Aircraft | Status |
+|---|---|
+| Zibo 737-800 | screen and keys verified via the X-Plane Web API; in-sim test pending |
+
+Keys and screen sit under different prefixes, both named after the unit:
+`laminar/B738/button/fmc1_…` and `laminar/B738/fmc1/…` for the captain, `fmc2`
+for the first officer. The slugs are `zibo_fmc_1` and `zibo_fmc_2`.
+
+The bezel follows the 737 unit: six line selects down each side; INIT REF, RTE,
+CLB, CRZ, DES and MENU, LEGS, DEP ARR, HOLD, PROG below the screen with EXEC
+beside them; N1 LIMIT, FIX, PREV PAGE and NEXT PAGE over the number pad; the
+letters with SP, DEL, `/` and CLR. From a keyboard, letters, digits, `.`, `/` and
+`-` (+/−) type themselves, space is SP, Delete is DEL and Backspace is CLR.
+
 ## Endpoints
 
 | Endpoint         | Purpose                                                |
@@ -163,7 +194,7 @@ reports it as present as soon as the aircraft is loaded.
 | `/`              | Selection page, no stream                              |
 | `/device/<slug>` | One unit in its bezel                                  |
 | `/stream/<slug>` | MJPEG stream of one unit                               |
-| `/screen/<slug>` | Server-sent events: the ToLiss MCDU's screen as text (see below) |
+| `/screen/<slug>` | Server-sent events: the MCDU's or FMC's screen as text (see below) |
 | `/devices`       | JSON: slug, type, name, `screen` (`mjpeg` or `text`), and whether the aircraft has it|
 | `/control`       | WebSocket: `{"device": "gns530_1", "button": "fpl"}`   |
 
@@ -173,7 +204,9 @@ for the GNS units — `fpl`, `menu`, `clr`, `ent`, `cursor`, `zoom_in`, `page_up
 `ls_1l`, `exec`, `dep_arr`, `key_A`, `key_7`, … Note the CDU's letter keys are
 upper case: `key_A`, not `key_a`. The ToLiss MCDUs use `AirbusFBW/MCDU1` and
 `AirbusFBW/MCDU2` — `LSK1L`, `KeyA`, `Key7`, `Fpln`, `DirTo`, `SlewUp`, … spelled
-exactly as ToLiss does. Only whitelisted names are accepted; anything
+exactly as ToLiss does. The Zibo FMCs use `laminar/B738/button/fmc1_` and
+`fmc2_` — `1L`, `A`, `7`, `clr`, `exec`, `init_ref`, `dep_app`, … again spelled
+exactly as the aircraft does. Only whitelisted names are accepted; anything
 else is dropped and logged. Presses are queued and executed on X-Plane's main
 thread, never from the network thread.
 
@@ -186,8 +219,8 @@ one character per column:
            "sizes": "LLLLLLLLLLLLLLLLLLLLLLLL"}, …]}
 ```
 
-Colours are `w` white, `g` green, `b` cyan, `y` yellow, `a` amber and `m`
-magenta; sizes are `L` large and `s` small. Row 0 is the title, rows 1–12
+Colours are `w` white, `g` green, `b` cyan, `y` yellow, `a` amber, `m`
+magenta and `i` inverse video (black on white); sizes are `L` large and `s` small. Row 0 is the title, rows 1–12
 alternate label and data line, row 13 is the scratchpad. An event is sent only
 when the screen changes, plus a comment line every five seconds so a closed
 client is noticed.
@@ -232,10 +265,12 @@ The selection page draws its tile picture from the same JSON, so a new type
 brings its own likeness along.
 
 That recipe covers units X-Plane renders itself. An add-on that draws its own
-display — like the ToLiss MCDU — needs a screen source of its own in the plugin
-as well: a `device_registry` entry with `ScreenSource::text_datarefs`, and a
-module that reads the add-on's datarefs into the text grid. The bezel and the
-page stay data, as for every other type.
+display — like the ToLiss MCDU or the Zibo FMC — needs its screen format in
+the plugin as well: a `device_registry` entry with `ScreenSource::text_datarefs`
+and the dataref prefix, and a `ScreenFormat` in `text_screen_formats` that names
+the add-on's layers — which dataref lands on which row, in which colour and
+size — and the characters its font draws differently. Reading, the grid and the
+page are shared; the bezel stays data, as for every other type.
 
 ## Security
 
