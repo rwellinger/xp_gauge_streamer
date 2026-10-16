@@ -369,7 +369,7 @@ vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2, libjpeg-turbo  (make s
 | Dependency    | Version | Source              | Purpose                            |
 |---------------|---------|---------------------|------------------------------------|
 | X-Plane SDK   | 4.3.0   | `make setup`        | Plugin API, Avionics capture       |
-| civetweb      | 1.16    | `make setup`        | Embedded HTTP server + WebSocket   |
+| civetweb      | master `d110e87` | `make setup`        | Embedded HTTP server + WebSocket   |
 | libjpeg-turbo | 3.2.0   | `make setup`        | JPEG encoding (SIMD: NEON or x86)  |
 | nlohmann/json | 3.12.0  | `make setup`        | Control messages, MCDU screen JSON |
 | Dear ImGui    | 1.92.8  | `make setup`        | In-sim settings window             |

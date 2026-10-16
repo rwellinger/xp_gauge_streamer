@@ -31,7 +31,10 @@ JSON_SENTINEL     := vendor/json.hpp
 IMGUI_SENTINEL    := vendor/imgui/imgui.h
 TURBOJPEG_SENTINEL := vendor/libjpeg-turbo/CMakeLists.txt
 
-CIVETWEB_VERSION := 1.16
+# No release since 1.16 (2023); pinned to a master commit for the fix of
+# CVE-2025-55763 (heap overflow in the directory redirect). The commit after
+# it (588860e) does not compile.
+CIVETWEB_COMMIT  := d110e8731c6aa0fcd04504deb449bdb773cfb9da
 CATCH2_VERSION   := 3.15.3
 JSON_VERSION     := 3.12.0
 IMGUI_VERSION    := 1.92.8
@@ -93,15 +96,15 @@ $(SDK_SENTINEL):
 	@echo "SDK headers installed."
 
 $(CIVETWEB_SENTINEL):
-	@echo "Downloading civetweb v$(CIVETWEB_VERSION)..."
+	@echo "Downloading civetweb $(CIVETWEB_COMMIT)..."
 	@set -euo pipefail; \
 	TMP=$$(mktemp -d); \
 	trap "rm -rf $$TMP" EXIT; \
 	mkdir -p vendor/civetweb/src vendor/civetweb/include; \
-	curl -fsSL "https://github.com/civetweb/civetweb/archive/refs/tags/v$(CIVETWEB_VERSION).tar.gz" \
+	curl -fsSL "https://github.com/civetweb/civetweb/archive/$(CIVETWEB_COMMIT).tar.gz" \
 	     -o "$$TMP/civetweb.tar.gz"; \
 	tar -xzf "$$TMP/civetweb.tar.gz" -C "$$TMP/"; \
-	SRC="$$TMP/civetweb-$(CIVETWEB_VERSION)"; \
+	SRC="$$TMP/civetweb-$(CIVETWEB_COMMIT)"; \
 	cp "$$SRC"/src/civetweb.c "$$SRC"/src/*.inl "$$SRC"/src/civetweb_private_lua.h vendor/civetweb/src/; \
 	cp "$$SRC"/include/civetweb.h vendor/civetweb/include/
 	@echo "civetweb installed."
