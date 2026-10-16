@@ -1,6 +1,6 @@
 ### Welly's Gauge Streamer for X-Plane 12
 
-### What's New in v1.2.2
+### What's New in v1.1.1
 
   - **Security fix in the built-in web server** — the web server inside the plugin had a known flaw: a specially crafted request from another device on your network could crash X-Plane. It is now updated to a version that fixes this. Nothing changes in how the plugin looks or works.
 
