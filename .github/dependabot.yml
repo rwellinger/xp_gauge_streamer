@@ -1,8 +1,0 @@
-# Only the workflows: the C++ dependencies are fetched by 'make setup' with
-# curl, which Dependabot cannot read.
-version: 2
-updates:
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: monthly
