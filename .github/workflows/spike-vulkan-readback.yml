@@ -21,7 +21,7 @@ jobs:
         include:
           - os: windows-latest
             platform: win_x64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             platform: lin_x64
           - os: macos-latest
             platform: mac_x64
@@ -46,7 +46,7 @@ jobs:
           find sdk_extracted -maxdepth 4 -name "*.framework" -exec cp -R {} sdk/Libraries/Mac/ \; || true
 
       - name: Install OpenGL headers
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev
 
       - name: Build
