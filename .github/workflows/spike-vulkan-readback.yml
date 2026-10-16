@@ -28,7 +28,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # The spike needs the SDK headers and, on Windows, the stub libraries —
       # not the plugin's other dependencies, so 'make setup' would be overkill

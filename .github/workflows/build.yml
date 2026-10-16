@@ -28,7 +28,7 @@ jobs:
   lint:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install tools
         run: |
@@ -58,7 +58,7 @@ jobs:
     needs: [lint]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
 
       - name: Cache SDK and vendored dependencies
@@ -96,7 +96,7 @@ jobs:
     needs: [lint]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: sudo apt-get update -q && sudo apt-get install -y libgl-dev nasm
@@ -134,7 +134,7 @@ jobs:
     needs: [lint]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # The setup recipes are bash with curl, tar and unzip; Git Bash has all of
       # it, which is smaller than maintaining a second download implementation.
@@ -180,7 +180,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download platform artifacts
         uses: actions/download-artifact@v8
