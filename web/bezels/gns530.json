@@ -1,0 +1,122 @@
+{
+  "name": "GNS 530",
+  "size": { "width": 1000, "height": 620 },
+  "screen": { "x": 206, "y": 24, "width": 604, "height": 453 },
+  "controls": [
+    {
+      "kind": "knob",
+      "caption": "COM VOL",
+      "rings": [{ "decrease": "cvol_dn", "increase": "cvol_up" }],
+      "press": { "label": "SQ", "command": "cvol" },
+      "box": { "x": 20, "y": 24, "width": 80, "height": 104 }
+    },
+    {
+      "kind": "knob",
+      "caption": "VLOC VOL",
+      "rings": [{ "decrease": "vvol_dn", "increase": "vvol_up" }],
+      "press": { "label": "ID", "command": "vvol" },
+      "box": { "x": 20, "y": 140, "width": 80, "height": 104 }
+    },
+    {
+      "kind": "button",
+      "label": "C ⇄",
+      "command": "com_ff",
+      "box": { "x": 108, "y": 30, "width": 82, "height": 84 }
+    },
+    {
+      "kind": "button",
+      "label": "V ⇄",
+      "command": "nav_ff",
+      "box": { "x": 108, "y": 146, "width": 82, "height": 84 }
+    },
+    {
+      "kind": "knob",
+      "caption": "COM / VLOC",
+      "rings": [
+        { "decrease": "coarse_down", "increase": "coarse_up" },
+        { "decrease": "fine_down", "increase": "fine_up" }
+      ],
+      "press": { "label": "C/V", "command": "nav_com_tog" },
+      "box": { "x": 20, "y": 428, "width": 164, "height": 184 }
+    },
+    {
+      "kind": "button",
+      "label": "CDI",
+      "command": "cdi",
+      "box": { "x": 206, "y": 500, "width": 94, "height": 76 }
+    },
+    {
+      "kind": "button",
+      "label": "OBS",
+      "command": "obs",
+      "box": { "x": 308, "y": 500, "width": 94, "height": 76 }
+    },
+    {
+      "kind": "button",
+      "label": "MSG",
+      "command": "msg",
+      "box": { "x": 410, "y": 500, "width": 94, "height": 76 }
+    },
+    {
+      "kind": "button",
+      "label": "FPL",
+      "command": "fpl",
+      "box": { "x": 512, "y": 500, "width": 94, "height": 76 }
+    },
+    {
+      "kind": "button",
+      "label": "VNAV",
+      "command": "vnav",
+      "box": { "x": 614, "y": 500, "width": 94, "height": 76 }
+    },
+    {
+      "kind": "button",
+      "label": "PROC",
+      "command": "proc",
+      "box": { "x": 716, "y": 500, "width": 94, "height": 76 }
+    },
+    {
+      "kind": "rocker",
+      "orientation": "vertical",
+      "segments": [
+        { "label": "RNG +", "command": "zoom_in" },
+        { "label": "RNG −", "command": "zoom_out" }
+      ],
+      "box": { "x": 826, "y": 24, "width": 154, "height": 104 }
+    },
+    {
+      "kind": "button",
+      "label": "D→",
+      "command": "direct",
+      "box": { "x": 826, "y": 136, "width": 154, "height": 64 }
+    },
+    {
+      "kind": "button",
+      "label": "MENU",
+      "command": "menu",
+      "box": { "x": 826, "y": 208, "width": 154, "height": 64 }
+    },
+    {
+      "kind": "button",
+      "label": "CLR",
+      "command": "clr",
+      "box": { "x": 826, "y": 280, "width": 154, "height": 64 }
+    },
+    {
+      "kind": "button",
+      "label": "ENT",
+      "command": "ent",
+      "box": { "x": 826, "y": 352, "width": 154, "height": 64 }
+    },
+    {
+      "kind": "knob",
+      "caption": "CHAP / PAGE",
+      "rings": [
+        { "decrease": "chapter_dn", "increase": "chapter_up" },
+        { "decrease": "page_dn", "increase": "page_up" }
+      ],
+      "press": { "label": "CRSR", "command": "cursor" },
+      "box": { "x": 816, "y": 428, "width": 164, "height": 184 }
+    }
+  ]
+}

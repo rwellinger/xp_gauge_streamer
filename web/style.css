@@ -1,0 +1,343 @@
+:root {
+    --gap: 0.5rem;
+    --panel: #181c20;
+    --key: #23282e;
+    --edge: #2b3138;
+    --text: #d6dde3;
+    --muted: #8a9199;
+    --live: #4c9a5c;
+    --dead: #b4553f;
+
+    /* The MCDU's and FMC's display colours, by the letter the plugin sends. */
+    --mcdu-white: #f2f2f2;
+    --mcdu-green: #3ee06a;
+    --mcdu-cyan: #33cfff;
+    --mcdu-yellow: #f5e14a;
+    --mcdu-amber: #ff9f1c;
+    --mcdu-magenta: #ff5cf2;
+
+    /* Overwritten per bezel: one bezel unit in pixels, so labels scale with
+       the panel instead of staying at a fixed size. */
+    --unit: 1px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: var(--gap);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    background: #0d0f11;
+    color: var(--muted);
+    font: 0.9rem/1.4 system-ui, sans-serif;
+
+    /* No text selection or double-tap zoom when a press lands next to a key. */
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap);
+}
+
+h1 {
+    margin: 0;
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.back {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--edge);
+    border-radius: 0.4rem;
+}
+
+#status {
+    margin: 0;
+    padding-left: 1rem;
+    position: relative;
+}
+
+#status::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.4em;
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    background: var(--dead);
+}
+
+#status[data-state="live"]::before {
+    background: var(--live);
+}
+
+#status[data-state="connecting"]::before {
+    background: var(--muted);
+}
+
+/* ── Selection page ───────────────────────────────────────────────────────── */
+
+.picker {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: calc(var(--gap) * 2);
+    align-content: start;
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: var(--gap);
+    border: 1px solid var(--edge);
+    border-radius: 0.6rem;
+    background: var(--panel);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.tile[data-absent="true"] {
+    opacity: 0.45;
+}
+
+.tile-name {
+    font-weight: 600;
+}
+
+.tile-state {
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.sketch {
+    width: 100%;
+    height: auto;
+    /* A portrait device would otherwise make its tile twice as tall as the
+       landscape ones; the viewBox scales the drawing down and centres it. */
+    max-height: 11rem;
+}
+
+.sketch-body {
+    fill: #101418;
+    stroke: var(--edge);
+    stroke-width: 4;
+}
+
+.sketch-screen {
+    fill: #17342a;
+    stroke: #2f5f4c;
+    stroke-width: 3;
+}
+
+.sketch-key {
+    fill: var(--key);
+    stroke: var(--edge);
+    stroke-width: 3;
+}
+
+/* ── Bezel ────────────────────────────────────────────────────────────────── */
+
+#panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bezel {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 0.6rem;
+}
+
+.screen {
+    position: absolute;
+    background: #000;
+    border: 1px solid var(--edge);
+    /* The capture has the screen's aspect ratio, and so has its box in the
+       definition — filling it keeps the picture true to the device. */
+    object-fit: fill;
+}
+
+/* ── Text screen ──────────────────────────────────────────────────────────── */
+
+/* One cell per character, so the columns line up whatever the font's advance
+   width — and the line select keys stay level with the rows they belong to. */
+.text-screen {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    grid-template-rows: repeat(14, 1fr);
+    /* The black margin the unit leaves around its text, in bezel units. */
+    padding: calc(var(--unit) * 20);
+    overflow: hidden;
+    container-type: size;
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font: 500 calc(100cqh / 14 * 0.95) / 1 ui-monospace, Menlo, Consolas, monospace;
+    white-space: pre;
+    color: var(--mcdu-white);
+}
+
+.cell[data-size="s"] {
+    font-size: calc(100cqh / 14 * 0.72);
+}
+
+.cell[data-color="g"] { color: var(--mcdu-green); }
+.cell[data-color="b"] { color: var(--mcdu-cyan); }
+.cell[data-color="y"] { color: var(--mcdu-yellow); }
+.cell[data-color="a"] { color: var(--mcdu-amber); }
+.cell[data-color="m"] { color: var(--mcdu-magenta); }
+
+/* Inverse video, as the 737 FMC highlights a selected option. */
+.cell[data-color="i"] {
+    background: var(--mcdu-white);
+    color: #000;
+}
+
+.control {
+    position: absolute;
+}
+
+button {
+    /* The browser's own padding shifts the label off centre on the small keys —
+       the press in the middle of a volume knob is barely wider than its text. */
+    padding: 0;
+    border: 1px solid var(--edge);
+    background: var(--key);
+    color: var(--text);
+    /* A control may override --label-size when its keys are too small for the
+       default, as on a CDU's letter pad. */
+    font: 700 calc(var(--unit) * var(--label-size, 18)) / 1.15 system-ui, sans-serif;
+    /* Keeps a "\n" in a definition's label as a line break — DEP/ARR and PREV
+       PAGE do not fit a CDU key on one line. */
+    white-space: pre-line;
+    text-align: center;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+button:active,
+button[data-pressed="true"] {
+    background: #33414c;
+    border-color: var(--live);
+}
+
+.key {
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--unit) * 8);
+}
+
+/* ── Rocker ───────────────────────────────────────────────────────────────── */
+
+.rocker {
+    display: flex;
+    gap: calc(var(--unit) * 3);
+    width: 100%;
+    height: 100%;
+}
+
+.rocker.vertical {
+    flex-direction: column;
+}
+
+.rocker .key {
+    flex: 1;
+}
+
+/* ── Grid ─────────────────────────────────────────────────────────────────── */
+
+.grid {
+    display: grid;
+    /* In bezel units, so the gaps shrink with the panel instead of swallowing
+       the keys on a small screen. */
+    gap: calc(var(--unit) * 8);
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Knob ─────────────────────────────────────────────────────────────────── */
+
+.knob {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.knob .face {
+    position: relative;
+    flex: 1;
+    aspect-ratio: 1;
+    margin: 0 auto;
+}
+
+/* A sector of the round face, clipped to its wedge by the renderer. The rim
+   stays circular because the background is rounded, the wedge only decides
+   which part of it belongs to this key. */
+.half {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    font-size: calc(var(--unit) * 24);
+}
+
+.glyph {
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+
+/* Each ring a shade lighter than the one before, so the cross of sectors reads
+   as two controls on one knob rather than as four keys. */
+.half[data-depth="1"] {
+    background: #2f373f;
+}
+
+.half[data-depth="2"] {
+    background: #3a444d;
+}
+
+.press {
+    position: absolute;
+    border-radius: 50%;
+    background: #3f4a54;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-size: calc(var(--unit) * 14);
+}
+
+.caption {
+    text-align: center;
+    font-size: calc(var(--unit) * 13);
+    color: #5c646c;
+    letter-spacing: 0.05em;
+}

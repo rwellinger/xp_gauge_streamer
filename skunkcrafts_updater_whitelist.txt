@@ -1,0 +1,16 @@
+config/settings.cfg|3371182287
+lin_x64/xp_gauge_streamer.xpl|3997766735
+mac_x64/xp_gauge_streamer.xpl|3999094230
+web/bezel.js|2168478718
+web/bezels/cdu739.json|4184839110
+web/bezels/gns430.json|3133665407
+web/bezels/gns530.json|2814914614
+web/bezels/toliss_mcdu.json|2744563845
+web/bezels/zibo_fmc.json|224572688
+web/device.html|654283678
+web/device.js|2310905976
+web/index.html|2857988776
+web/index.js|3295434778
+web/style.css|2954883860
+web/text_screen.js|2020346320
+win_x64/xp_gauge_streamer.xpl|2933540836

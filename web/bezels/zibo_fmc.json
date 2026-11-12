@@ -1,0 +1,90 @@
+{
+  "name": "FMC",
+  "size": { "width": 1000, "height": 1381 },
+  "screen": { "x": 220, "y": 36, "width": 560, "height": 511 },
+  "controls": [
+    {
+      "kind": "grid",
+      "columns": 1,
+      "labelSize": 24,
+      "box": { "x": 30, "y": 106, "width": 160, "height": 404 },
+      "keys": [
+        { "label": "1L", "command": "1L" },
+        { "label": "2L", "command": "2L" },
+        { "label": "3L", "command": "3L" },
+        { "label": "4L", "command": "4L" },
+        { "label": "5L", "command": "5L" },
+        { "label": "6L", "command": "6L" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 1,
+      "labelSize": 24,
+      "box": { "x": 810, "y": 106, "width": 160, "height": 404 },
+      "keys": [
+        { "label": "1R", "command": "1R" },
+        { "label": "2R", "command": "2R" },
+        { "label": "3R", "command": "3R" },
+        { "label": "4R", "command": "4R" },
+        { "label": "5R", "command": "5R" },
+        { "label": "6R", "command": "6R" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 5,
+      "labelSize": 22,
+      "box": { "x": 40, "y": 577, "width": 641, "height": 182 },
+      "keys": [
+        { "label": "INIT\nREF", "command": "init_ref" }, { "label": "RTE", "command": "rte" }, { "label": "CLB", "command": "clb" }, { "label": "CRZ", "command": "crz" }, { "label": "DES", "command": "des" },
+        { "label": "MENU", "command": "menu" }, { "label": "LEGS", "command": "legs" }, { "label": "DEP\nARR", "command": "dep_app" }, { "label": "HOLD", "command": "hold" }, { "label": "PROG", "command": "prog" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 1,
+      "labelSize": 24,
+      "box": { "x": 755, "y": 703, "width": 170, "height": 51 },
+      "keys": [
+        { "label": "EXEC", "command": "exec" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 2,
+      "labelSize": 22,
+      "box": { "x": 40, "y": 777, "width": 303, "height": 179 },
+      "keys": [
+        { "label": "N1\nLIMIT", "command": "n1_lim" }, { "label": "FIX", "command": "fix" },
+        { "label": "PREV\nPAGE", "command": "prev_page" }, { "label": "NEXT\nPAGE", "command": "next_page" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 3,
+      "labelSize": 40,
+      "box": { "x": 40, "y": 968, "width": 303, "height": 373 },
+      "keys": [
+        { "label": "1", "command": "1" }, { "label": "2", "command": "2" }, { "label": "3", "command": "3" },
+        { "label": "4", "command": "4" }, { "label": "5", "command": "5" }, { "label": "6", "command": "6" },
+        { "label": "7", "command": "7" }, { "label": "8", "command": "8" }, { "label": "9", "command": "9" },
+        { "label": ".", "command": "period" }, { "label": "0", "command": "0" }, { "label": "+/−", "command": "minus", "shortcut": "-" }
+      ]
+    },
+    {
+      "kind": "grid",
+      "columns": 5,
+      "labelSize": 35,
+      "box": { "x": 361, "y": 777, "width": 599, "height": 564 },
+      "keys": [
+        { "label": "A", "command": "A" }, { "label": "B", "command": "B" }, { "label": "C", "command": "C" }, { "label": "D", "command": "D" }, { "label": "E", "command": "E" },
+        { "label": "F", "command": "F" }, { "label": "G", "command": "G" }, { "label": "H", "command": "H" }, { "label": "I", "command": "I" }, { "label": "J", "command": "J" },
+        { "label": "K", "command": "K" }, { "label": "L", "command": "L" }, { "label": "M", "command": "M" }, { "label": "N", "command": "N" }, { "label": "O", "command": "O" },
+        { "label": "P", "command": "P" }, { "label": "Q", "command": "Q" }, { "label": "R", "command": "R" }, { "label": "S", "command": "S" }, { "label": "T", "command": "T" },
+        { "label": "U", "command": "U" }, { "label": "V", "command": "V" }, { "label": "W", "command": "W" }, { "label": "X", "command": "X" }, { "label": "Y", "command": "Y" },
+        { "label": "Z", "command": "Z" }, { "label": "SP", "command": "SP", "shortcut": " " }, { "label": "DEL", "command": "del", "shortcut": "Delete" }, { "label": "/", "command": "slash" }, { "label": "CLR", "command": "clr", "shortcut": "Backspace" }
+      ]
+    }
+  ]
+}
