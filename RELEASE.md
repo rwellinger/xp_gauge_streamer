@@ -1,6 +1,6 @@
 ### Welly's Gauge Streamer for X-Plane 12
 
-### What's New in v1.2.0
+### What's New in v1.1.3
 
  - **Updates through the SkunkCrafts Updater** — the plugin can now be kept up to date with the [SkunkCrafts Updater](https://forums.x-plane.org/forums/forum/406-skunkcrafts-updater/) instead of downloading and unzipping every release by hand. The updater finds the plugin on its own; your settings stay untouched, as they live in `Output/xp_gauge_streamer/`.
  - **One last manual install** — versions up to v1.1.2 carry no updater file. Install this release once from the ZIP as before; from then on the updater takes over.
