@@ -153,6 +153,14 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_opengl2.cpp
 )
 
+# ── xp_wellys_about (downloaded by 'make setup' into vendor/xp_wellys_about) ──
+# The "About the developer" page shared by all of thWelly's plugins.
+set(ABOUT_DIR ${CMAKE_SOURCE_DIR}/vendor/xp_wellys_about)
+set(ABOUT_SOURCES
+    ${ABOUT_DIR}/src/about_view.cpp
+    ${ABOUT_DIR}/src/about_photo.cpp
+)
+
 # ── Version ───────────────────────────────────────────────────────────────────
 file(READ "${CMAKE_SOURCE_DIR}/VERSION.txt" XP_GAUGE_STREAMER_VERSION)
 string(STRIP "${XP_GAUGE_STREAMER_VERSION}" XP_GAUGE_STREAMER_VERSION)
@@ -175,6 +183,7 @@ add_library(xp_gauge_streamer MODULE
     src/http_server.cpp
     src/jpeg_encoder.cpp
     src/main.cpp
+    src/plugin_about.cpp
     ${XP_NETWORK_INFO_SOURCE}
     src/plugin_log.cpp
     src/plugin_paths.cpp
@@ -184,6 +193,7 @@ add_library(xp_gauge_streamer MODULE
     src/text_screen_formats.cpp
     src/text_screen_source.cpp
     ${IMGUI_SOURCES}
+    ${ABOUT_SOURCES}
 )
 
 set_target_properties(xp_gauge_streamer PROPERTIES
@@ -200,6 +210,7 @@ target_include_directories(xp_gauge_streamer SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/sdk/XPWidgets
     ${CMAKE_SOURCE_DIR}/vendor
     ${IMGUI_DIR}
+    ${ABOUT_DIR}/src
 )
 
 target_compile_definitions(xp_gauge_streamer PRIVATE

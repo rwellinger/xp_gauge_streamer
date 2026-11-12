@@ -29,7 +29,7 @@ operate the units in the sim.
 ## Quick start
 
 1. Build and install (or copy a release build) into your X-Plane 12 plugins folder.
-2. In X-Plane, open **Plugins → Welly's Gauge Streamer → Stream settings** — it shows the address to type on the tablet, which devices this aircraft has, and the port.
+2. In X-Plane, open **Plugins → Welly's Gauge Streamer → Stream settings** — it shows the address to type on the tablet, which devices this aircraft has, and the port. **About** (in the same menu, or the button at the bottom of the window) introduces the developer and lists the licenses.
 3. On a tablet in the same network, open `http://<your-ip>:8080/` (or `http://localhost:8080/` on this machine).
 4. Pick a unit on the selection page, or bookmark `/device/<slug>` for a dedicated screen.
 
@@ -316,7 +316,7 @@ Project context for AI assistants: [.cursor/rules/xp-gauge-streamer.mdc](.cursor
 ### Build from source
 
 ```bash
-make setup    # SDK, civetweb, Catch2, json, ImGui, libjpeg-turbo → sdk/ + vendor/
+make setup    # SDK, civetweb, Catch2, json, ImGui, libjpeg-turbo, xp_wellys_about → sdk/ + vendor/
 make build    # Configure + compile → build/xp_gauge_streamer.xpl
 make test     # Run the Catch2 unit tests
 make install  # Code-sign and copy plugin, web/ and default settings into X-Plane
@@ -361,7 +361,7 @@ web/         frontend — no framework, no build step
 web/bezels/  one JSON per device type: screen area, keys, geometry, commands
 tests/       Catch2 unit tests — never link the SDK, domain logic only
 sdk/         X-Plane SDK headers + stub frameworks   (make setup)
-vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2, libjpeg-turbo  (make setup)
+vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2, libjpeg-turbo, xp_wellys_about  (make setup)
 ```
 
 ### Dependencies

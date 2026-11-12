@@ -16,7 +16,7 @@ instead.
 ## Commands
 
 ```bash
-make setup     # Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui, libjpeg-turbo
+make setup     # Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui, libjpeg-turbo, xp_wellys_about
 make build     # Configure + compile → build/xp_gauge_streamer.xpl
 make test      # Run the Catch2 unit tests
 make install   # Copy plugin, web/ and default settings into X-Plane (code-signs on macOS)
@@ -70,7 +70,13 @@ X-Plane's XPLM API; network threads must never call XPLM.
   /`fmc2_` for the Zibo 737. Text devices also carry a `dataref_prefix` — the
   same as the command prefix for ToLiss, `laminar/B738/fmc<n>/` for the Zibo.
   Devices unknown to X-Plane take ids from 100 up.
-- **`plugin_ui`** — Dear ImGui settings window (address, port, device presence).
+- **`plugin_ui`** — Dear ImGui settings window (address, port, device presence)
+  and the plugins menu (**Stream settings**, **About**).
+- **`plugin_about`** — About window. Thin wrapper around the shared
+  `xp_wellys_about` module (own repo, used by all of thWelly's plugins), filled in
+  with this plugin's name, version and license notice. Content changes belong in
+  that repo, not here. Not listed among the third-party licenses: it is our own
+  code, vendored only so one change reaches every plugin.
 - **`settings`** — Reads/writes `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
   so updates do not wipe user config.
 

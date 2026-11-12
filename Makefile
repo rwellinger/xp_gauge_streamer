@@ -30,6 +30,7 @@ CATCH2_SENTINEL   := vendor/catch2/catch_amalgamated.hpp
 JSON_SENTINEL     := vendor/json.hpp
 IMGUI_SENTINEL    := vendor/imgui/imgui.h
 TURBOJPEG_SENTINEL := vendor/libjpeg-turbo/CMakeLists.txt
+ABOUT_SENTINEL     := vendor/xp_wellys_about/src/wellys_about.hpp
 
 # No release since 1.16 (2023); pinned to a master commit for the fix of
 # CVE-2025-55763 (heap overflow in the directory redirect). The commit after
@@ -39,8 +40,10 @@ CATCH2_VERSION   := 3.15.3
 JSON_VERSION     := 3.12.0
 IMGUI_VERSION    := 1.92.8
 TURBOJPEG_VERSION := 3.2.0
+# Shared "About the developer" page of thWelly's plugins
+ABOUT_VERSION    := 1.0.0
 
-DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) $(IMGUI_SENTINEL) $(TURBOJPEG_SENTINEL)
+DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) $(IMGUI_SENTINEL) $(TURBOJPEG_SENTINEL) $(ABOUT_SENTINEL)
 
 .PHONY: help all setup build test install format lint sanitize release release-build cleanup-tags cleanup-branches cleanup-runs clean distclean
 
@@ -54,7 +57,7 @@ help:
 	@echo ""
 	@echo "Common:"
 	@echo "  help            Show this message (default)"
-	@echo "  setup           Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui, libjpeg-turbo"
+	@echo "  setup           Download X-Plane SDK, civetweb, Catch2, nlohmann/json, Dear ImGui, libjpeg-turbo, xp_wellys_about"
 	@echo "  build           Configure + compile → build/xp_gauge_streamer.xpl"
 	@echo "  test            Build and run the Catch2 unit tests"
 	@echo "  install         Code-sign and copy plugin, web/ and default settings into X-Plane"
@@ -144,6 +147,18 @@ $(IMGUI_SENTINEL):
 	cp "$$SRC"/imstb_{textedit,rectpack,truetype}.h vendor/imgui/; \
 	cp "$$SRC"/backends/imgui_impl_opengl2.{h,cpp} vendor/imgui/backends/
 	@echo "Dear ImGui installed."
+
+$(ABOUT_SENTINEL):
+	@echo "Downloading xp_wellys_about v$(ABOUT_VERSION)..."
+	@set -euo pipefail; \
+	TMP=$$(mktemp -d); \
+	trap "rm -rf $$TMP" EXIT; \
+	curl -fsSL "https://github.com/rwellinger/xp_wellys_about/archive/refs/tags/v$(ABOUT_VERSION).tar.gz" \
+	     -o "$$TMP/about.tar.gz"; \
+	tar -xzf "$$TMP/about.tar.gz" -C "$$TMP/"; \
+	mkdir -p vendor/xp_wellys_about; \
+	cp -R "$$TMP/xp_wellys_about-$(ABOUT_VERSION)/src" "$$TMP/xp_wellys_about-$(ABOUT_VERSION)/LICENSE" vendor/xp_wellys_about/
+	@echo "xp_wellys_about installed."
 
 # Built from source as a CMake subproject rather than taken from a package
 # manager: Homebrew, apt and vcpkg disagree on layout, static/shared defaults and
