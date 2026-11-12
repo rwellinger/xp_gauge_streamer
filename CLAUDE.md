@@ -24,6 +24,8 @@ make format    # clang-format over src/
 make lint      # clang-tidy (bugprone-* and performance-* are errors)
 make sanitize  # Build + run unit tests under ASan + UBSan in build-sanitize/
 make release VERSION=x.y.z   # Tag + push release (commits VERSION.txt)
+make skunkcrafts             # Stage a SkunkCrafts Updater tree from the install → build/skunkcrafts/
+make verify-install          # Compare an install with the published `release` branch
 ```
 
 The plugin itself must still be validated in X-Plane 12. Unit tests cover domain
@@ -104,6 +106,10 @@ and HTTP run off-thread. Button presses cross that boundary only via
   `add_subdirectory`. SIMD needs NASM on x64; Apple Silicon uses NEON.
 - **Only macOS is used in anger.** Windows was verified in a cloud VM without a
   home network; Linux is best effort — CI proves it compiles, nothing more.
+- Releases also force-push the ZIP tree plus SkunkCrafts control files
+  (`tools/skunkcrafts/generate.py`) as one orphan commit to the `release`
+  branch — the updater's `module` URL. Ruleset `protect_release` blocks only
+  deletion; never add a force-push rule there, every release needs one.
 - The `.xpl` is intentionally not ASan-instrumented — use Instruments.app against
   the running X-Plane process for in-sim memory analysis
 

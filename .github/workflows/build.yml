@@ -211,6 +211,13 @@ jobs:
 
           cp -R web dist/xp_gauge_streamer/web
           cp -R config dist/xp_gauge_streamer/config
+
+          # SkunkCrafts control files go into the tree before zipping, so a
+          # manual install from the ZIP is updater-discoverable too. Version
+          # from the tag (v1.2.3 -> 1.2.3).
+          python3 tools/skunkcrafts/generate.py \
+            --tree dist/xp_gauge_streamer --version "${GITHUB_REF_NAME#v}"
+
           cd dist && zip -r xp_gauge_streamer.zip xp_gauge_streamer/
 
       - name: Create release with assets
@@ -230,3 +237,22 @@ jobs:
             | macOS (Apple Silicon) | flown by the developer; Intel Macs are not supported |
             | Windows x64 | capture verified in a cloud VM; LAN access from a tablet is not |
             | Linux x64 | **best effort** — compiled by CI, never loaded in the sim |
+
+      # The tree the cfg `module` URL serves via raw.githubusercontent. One
+      # orphan commit per release, force-pushed, so binaries never pile up in
+      # history. The ruleset protect_release blocks deleting the branch but
+      # deliberately not force pushes — this step needs them.
+      - name: Publish SkunkCrafts update tree
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd dist/xp_gauge_streamer
+          git init -q
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "release ${GITHUB_REF_NAME}"
+          git branch -M release
+          git push --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" release

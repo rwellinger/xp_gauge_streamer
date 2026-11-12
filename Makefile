@@ -12,6 +12,8 @@ PLUGIN_ROOT := $(shell [ -d "$(XPLANE_ROOT)/xplaunchData/Plugins" ] \
                  && echo "$(XPLANE_ROOT)/xplaunchData/Plugins" \
                  || echo "$(XPLANE_ROOT)/Resources/plugins")
 PLUGIN_DIR  := $(PLUGIN_ROOT)/xp_gauge_streamer
+# Staging dir for a SkunkCrafts Updater tree; under build/ so `make clean` removes it.
+SKUNK_DIR   := build/skunkcrafts
 
 # X-Plane's folder name for this platform's binaries. mac_x64 applies to arm64
 # too — the name predates Apple Silicon and does not describe the architecture.
@@ -45,7 +47,7 @@ ABOUT_VERSION    := 1.0.0
 
 DEPS := $(SDK_SENTINEL) $(CIVETWEB_SENTINEL) $(CATCH2_SENTINEL) $(JSON_SENTINEL) $(IMGUI_SENTINEL) $(TURBOJPEG_SENTINEL) $(ABOUT_SENTINEL)
 
-.PHONY: help all setup build test install format lint sanitize release release-build cleanup-tags cleanup-branches cleanup-runs clean distclean
+.PHONY: help all setup build test install format lint sanitize release release-build skunkcrafts verify-install cleanup-tags cleanup-branches cleanup-runs clean distclean
 
 .DEFAULT_GOAL := help
 
@@ -72,6 +74,8 @@ help:
 	@echo "Release:"
 	@echo "  release VERSION=x.y.z   Tag + push release (commits VERSION.txt)"
 	@echo "  release-build           Local release build (-DRELEASE=ON)"
+	@echo "  skunkcrafts             Stage a SkunkCrafts update tree from the install -> $(SKUNK_DIR)/"
+	@echo "  verify-install          Compare an install (TREE=..., default the local one) with the published update"
 	@echo "  cleanup-tags            Prune local tags removed on origin"
 	@echo "  cleanup-branches        Prune local branches whose remote is gone"
 	@echo "  cleanup-runs            Delete all GitHub Actions runs except the newest per workflow"
@@ -284,6 +288,32 @@ release-build: $(DEPS)
 	@echo ""
 	@file build/xp_gauge_streamer.xpl
 	@echo "Done. Release build with version from VERSION.txt."
+
+# ── SkunkCrafts update tree ───────────────────────────────────────────────────
+# Stages the same layout as the release ZIP from the local install and writes
+# the control files into it, to inspect what the updater would see. A local
+# install carries only this platform's binary; the full three-platform tree is
+# built and pushed to the `release` branch by the release workflow.
+skunkcrafts:
+	@if [ ! -d "$(PLUGIN_DIR)" ]; then \
+	    echo "Plugin not installed at '$(PLUGIN_DIR)'. Run 'make install' first."; exit 1; \
+	fi
+	@VER="$(VERSION)"; \
+	if [ -z "$$VER" ] && [ -f VERSION.txt ]; then VER="$$(cat VERSION.txt)"; fi; \
+	if [ -z "$$VER" ]; then echo "No version. Set VERSION=x.y.z or VERSION.txt."; exit 1; fi; \
+	echo "=== Staging SkunkCrafts release tree ($$VER) ==="; \
+	rm -rf "$(SKUNK_DIR)"; mkdir -p "$(SKUNK_DIR)"; \
+	rsync -a --exclude '.DS_Store' --exclude 'skunkcrafts_updater*' \
+	    "$(PLUGIN_DIR)/" "$(SKUNK_DIR)/"; \
+	cp -R config "$(SKUNK_DIR)/config"; \
+	python3 tools/skunkcrafts/generate.py --tree "$(SKUNK_DIR)" --version "$$VER"; \
+	echo "Staged release tree at $(SKUNK_DIR)/ (version $$VER)."
+
+# Did the update land? CRC32-compares every whitelisted file of an install with
+# the published control files. The updater UI shows the cfg version, which it
+# records even when replacing a file failed (a loaded .xpl on Windows).
+verify-install:
+	@python3 tools/skunkcrafts/verify_install.py --tree "$(if $(TREE),$(TREE),$(PLUGIN_DIR))"
 
 # ── Cleanup Tags ──────────────────────────────────────────────────────────────
 cleanup-tags:

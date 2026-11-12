@@ -22,6 +22,8 @@ make format    # clang-format over src/
 make lint      # clang-tidy (bugprone-* and performance-* are errors)
 make sanitize  # unit tests under ASan + UBSan
 make release VERSION=x.y.z
+make skunkcrafts             # SkunkCrafts update tree → build/skunkcrafts/
+make verify-install
 ```
 
 Validate the plugin in X-Plane 12. Unit tests cover domain logic only.

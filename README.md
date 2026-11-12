@@ -28,7 +28,9 @@ operate the units in the sim.
 
 ## Quick start
 
-1. Build and install (or copy a release build) into your X-Plane 12 plugins folder.
+1. Build and install (or copy a release build) into your X-Plane 12 plugins folder. Later
+   updates can come through the [SkunkCrafts Updater](https://forums.x-plane.org/forums/forum/406-skunkcrafts-updater/):
+   the release ZIP carries `skunkcrafts_updater.cfg`, so the updater finds the plugin on its own.
 2. In X-Plane, open **Plugins → Welly's Gauge Streamer → Stream settings** — it shows the address to type on the tablet, which devices this aircraft has, and the port. **About** (in the same menu, or the button at the bottom of the window) introduces the developer and lists the licenses.
 3. On a tablet in the same network, open `http://<your-ip>:8080/` (or `http://localhost:8080/` on this machine).
 4. Pick a unit on the selection page, or bookmark `/device/<slug>` for a dedicated screen.
@@ -360,6 +362,7 @@ images/      screenshots for this README
 web/         frontend — no framework, no build step
 web/bezels/  one JSON per device type: screen area, keys, geometry, commands
 tests/       Catch2 unit tests — never link the SDK, domain logic only
+tools/skunkcrafts/  SkunkCrafts Updater control files: generator, cfg template, install check
 sdk/         X-Plane SDK headers + stub frameworks   (make setup)
 vendor/      civetweb, nlohmann/json, Dear ImGui, Catch2, libjpeg-turbo, xp_wellys_about  (make setup)
 ```
@@ -385,6 +388,15 @@ make release VERSION=0.3.0   # commits VERSION.txt, tags, pushes
 ```
 
 Pushing a `v*` tag runs lint + build on CI and publishes a ZIP to the releases page.
+The same tree, with the SkunkCrafts control files, is force-pushed as a single
+commit to the `release` branch, which the updater reads through
+raw.githubusercontent. A ruleset (`protect_release`) blocks deleting that branch;
+force pushes stay allowed because every release needs one.
+
+```bash
+make skunkcrafts             # stage the update tree from the local install → build/skunkcrafts/
+make verify-install          # did the update land? CRC32 of the install vs. the release branch
+```
 
 ## License
 
