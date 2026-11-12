@@ -13,6 +13,7 @@
 #include "http_server.hpp"
 #include "network_info.hpp"
 #include "opengl.hpp"
+#include "plugin_about.hpp"
 #include "settings.hpp"
 
 #include <XPLM/XPLMDisplay.h>
@@ -34,7 +35,7 @@ namespace
 {
 
 constexpr float WINDOW_WIDTH  = 540.0f;
-constexpr float WINDOW_HEIGHT = 430.0f;
+constexpr float WINDOW_HEIGHT = 460.0f;
 
 // The URL is the reason this window exists — it gets its own oversized line.
 constexpr float URL_FONT_SCALE = 1.6f;
@@ -57,7 +58,8 @@ XPLMWindowID   input_window    = nullptr;
 XPLMMenuID     plugin_menu     = nullptr;
 DevicesChanged devices_changed = nullptr;
 
-bool   window_open     = false;
+bool   settings_open   = false;
+bool   about_open      = false;
 double last_frame_time = 0.0;
 int    port_field      = 0;
 bool   port_stored     = false;
@@ -103,7 +105,7 @@ XPLMCursorStatus forward_cursor(XPLMWindowID window, int x, int y, void *)
     return xplm_CursorDefault;
 }
 
-void close_window();
+void close_all_windows();
 
 void forward_key(XPLMWindowID, char key, XPLMKeyFlags flags, char virtual_key, void *, int losing_focus)
 {
@@ -122,7 +124,7 @@ void forward_key(XPLMWindowID, char key, XPLMKeyFlags flags, char virtual_key, v
     if (virtual_key == XPLM_VK_RETURN)
         io.AddKeyEvent(ImGuiKey_Enter, true);
     if (virtual_key == XPLM_VK_ESCAPE)
-        close_window();
+        close_all_windows();
 }
 
 void draw_input_window(XPLMWindowID, void *) {}
@@ -150,12 +152,10 @@ void create_input_window()
     input_window = XPLMCreateWindowEx(&parameters);
 }
 
-void open_window()
+// The input window stays up while either ImGui window is open; it is the
+// only way mouse and keyboard reach them.
+void show_input_window()
 {
-    window_open = true;
-    port_stored = false;
-    port_field  = current_settings().port;
-
     if (input_window == nullptr)
         create_input_window();
 
@@ -163,20 +163,61 @@ void open_window()
     XPLMBringWindowToFront(input_window);
 }
 
-void close_window()
+void hide_input_window_when_unused()
 {
-    window_open = false;
-    if (input_window != nullptr)
+    if (input_window != nullptr && !settings_open && !about_open)
         XPLMSetWindowIsVisible(input_window, 0);
 }
 
-void toggle_window(void *, void *)
+void open_settings()
 {
-    if (window_open)
-        close_window();
-    else
-        open_window();
+    settings_open = true;
+    port_stored   = false;
+    port_field    = current_settings().port;
+    show_input_window();
 }
+
+void open_about()
+{
+    about_open = true;
+    show_input_window();
+}
+
+void close_all_windows()
+{
+    settings_open = false;
+    about_open    = false;
+    hide_input_window_when_unused();
+}
+
+void toggle_settings()
+{
+    if (settings_open)
+        settings_open = false;
+    else
+        open_settings();
+    hide_input_window_when_unused();
+}
+
+void toggle_about()
+{
+    if (about_open)
+        about_open = false;
+    else
+        open_about();
+    hide_input_window_when_unused();
+}
+
+// Each menu item carries the action it triggers as its item reference.
+struct MenuItem
+{
+    void (*action)();
+};
+
+MenuItem settings_menu_item{toggle_settings};
+MenuItem about_menu_item{toggle_about};
+
+void handle_menu(void *, void *item) { static_cast<MenuItem *>(item)->action(); }
 
 // ── Window contents ──────────────────────────────────────────────────────────
 
@@ -279,7 +320,7 @@ void draw_security_note()
                        "Set bind_address to 127.0.0.1 in the settings file to keep it on this machine.");
 }
 
-void draw_contents()
+void draw_settings_window()
 {
     ImGui::SetNextWindowSize(ImVec2(WINDOW_WIDTH, WINDOW_HEIGHT), ImGuiCond_FirstUseEver);
 
@@ -297,11 +338,24 @@ void draw_contents()
         draw_port_setting();
         ImGui::Separator();
         draw_security_note();
+        ImGui::Separator();
+        if (ImGui::Button("About"))
+            open_about();
     }
     ImGui::End();
 
     if (!stays_open)
-        close_window();
+        settings_open = false;
+}
+
+void draw_windows()
+{
+    if (settings_open)
+        draw_settings_window();
+    if (about_open)
+        draw_about_window(about_open);
+
+    hide_input_window_when_unused();
 }
 
 // ── Frame ────────────────────────────────────────────────────────────────────
@@ -320,7 +374,7 @@ void keep_input_window_on_screen()
 
 int render(XPLMDrawingPhase, int, void *)
 {
-    if (!window_open || imgui_context == nullptr)
+    if ((!settings_open && !about_open) || imgui_context == nullptr)
         return 1;
 
     int screen_left = 0, screen_top = 0, screen_right = 0, screen_bottom = 0;
@@ -369,7 +423,7 @@ int render(XPLMDrawingPhase, int, void *)
 
     ImGui_ImplOpenGL2_NewFrame();
     ImGui::NewFrame();
-    draw_contents();
+    draw_windows();
     ImGui::Render();
     ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
@@ -404,8 +458,9 @@ void start_ui(DevicesChanged on_devices_changed)
     last_frame_time = XPLMGetElapsedTime();
 
     const int menu_index = XPLMAppendMenuItem(XPLMFindPluginsMenu(), PRODUCT_NAME, nullptr, 0);
-    plugin_menu          = XPLMCreateMenu(PRODUCT_NAME, XPLMFindPluginsMenu(), menu_index, toggle_window, nullptr);
-    XPLMAppendMenuItem(plugin_menu, "Stream settings", nullptr, 0);
+    plugin_menu          = XPLMCreateMenu(PRODUCT_NAME, XPLMFindPluginsMenu(), menu_index, handle_menu, nullptr);
+    XPLMAppendMenuItem(plugin_menu, "Stream settings", &settings_menu_item, 0);
+    XPLMAppendMenuItem(plugin_menu, "About", &about_menu_item, 0);
 
     XPLMRegisterDrawCallback(render, xplm_Phase_Window, 0, nullptr);
 }
@@ -428,12 +483,14 @@ void stop_ui()
 
     if (imgui_context != nullptr)
     {
+        release_about();
         ImGui_ImplOpenGL2_Shutdown();
         ImGui::DestroyContext(imgui_context);
         imgui_context = nullptr;
     }
 
-    window_open = false;
+    settings_open = false;
+    about_open    = false;
 }
 
 } // namespace xp_gauge_streamer

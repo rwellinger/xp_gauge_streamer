@@ -14,7 +14,7 @@ Same guidance as [CLAUDE.md](../../CLAUDE.md) for Claude Code.
 ## Commands
 
 ```bash
-make setup     # SDK, civetweb, Catch2, json, ImGui, libjpeg-turbo
+make setup     # SDK, civetweb, Catch2, json, ImGui, libjpeg-turbo, xp_wellys_about
 make build     # → build/xp_gauge_streamer.xpl
 make test      # Catch2 unit tests (no SDK link)
 make install   # Code-sign + deploy plugin, web/, default settings
@@ -38,7 +38,8 @@ Namespace `xp_gauge_streamer`. Network threads must never call XPLM.
 - **`http_server`** — civetweb: static `web/`, `/stream/<slug>` (MJPEG), `/screen/<slug>` (SSE text), `/devices`, `/control` (no auth)
 - **`command_dispatch`** — Queue presses from network → resolve lazily + execute on main thread; whitelist via `command_catalog`
 - **`device_registry`** — device table (`slug`, `type`, `command_prefix`, `ScreenSource`); SDK-free `DeviceId`
-- **`plugin_ui`** — Dear ImGui settings window
+- **`plugin_ui`** — Dear ImGui settings window and plugins menu (Stream settings, About)
+- **`plugin_about`** — About window; thin wrapper around the shared `xp_wellys_about` module (own code, not listed among third-party licenses)
 - **`settings`** — `<X-Plane>/Output/xp_gauge_streamer/settings.cfg`
 
 **Frontend:** plain `web/` (no framework). Bezels in `web/bezels/<type>.json`. Text devices render via `text_screen.js` (SSE on `/screen/<slug>`).
