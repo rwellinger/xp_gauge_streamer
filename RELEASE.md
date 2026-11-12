@@ -1,8 +1,8 @@
 ### Welly's Gauge Streamer for X-Plane 12
 
-### What's New in v1.2.0
+### What's New in v1.1.2
 
-  - **About window** — **Plugins → Welly's Gauge Streamer → About**, or the **About** button in the settings window, introduces the developer behind the plugin, links to my other X-Plane plugins at [thwelly.ch/xplane-plugins](https://thwelly.ch/xplane-plugins/) and to [Buy Me a Coffee](https://buymeacoffee.com/thwelly), and shows the plugin's license and the third-party components it includes.
+ - General improvements of stability and maintainability.
 
 ### What's New in v1.1.1
 
